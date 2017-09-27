@@ -7,9 +7,10 @@
 
 
 from app.home import home
+from flask import render_template
 
 
 # 调用蓝图（定义视图）
 @home.route("/")
 def index():
-    return "<h1 style='color:green'>This is home</h1>"
+    return render_template("home/index.html")
