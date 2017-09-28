@@ -26,3 +26,9 @@ def login():
 @admin.route("/logout/")
 def logout():
     return redirect(url_for("admin.login"))
+
+
+# 定义修改密码视图
+@admin.route("/pwd/")
+def pwd():
+    return render_template("admin/pwd.html")
