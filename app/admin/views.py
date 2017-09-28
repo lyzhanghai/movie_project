@@ -69,3 +69,15 @@ def preview_add():
 @admin.route("/preview/list/")
 def preview_list():
     return render_template("admin/preview_list.html")
+
+
+# 定义会员列表视图
+@admin.route("/user/list/")
+def user_list():
+    return render_template("admin/user_list.html")
+
+
+# 定义查看会员视图
+@admin.route("/user/view/")
+def user_view():
+    return render_template("admin/user_view.html")
