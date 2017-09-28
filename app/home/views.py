@@ -80,3 +80,9 @@ def animation():
 @home.route("/search/")
 def search():
     return render_template("home/search.html")
+
+
+# 定义电影详情视图
+@home.route("/play/")
+def play():
+    return render_template("home/play.html")
