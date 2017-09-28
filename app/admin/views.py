@@ -34,6 +34,7 @@ def logout():
 def pwd():
     return render_template("admin/pwd.html")
 
+
 # 定义添加标签视图
 @admin.route("/tag/add/")
 def tag_add():
@@ -41,6 +42,18 @@ def tag_add():
 
 
 # 定义标签列表视图
-@admin.route("/tag/list")
+@admin.route("/tag/list/")
 def tag_list():
     return render_template("admin/tag_list.html")
+
+
+# 定义添加电影视图
+@admin.route("/movie/add/")
+def movie_add():
+    return render_template("admin/movie_add.html")
+
+
+# 定义电影列表视图
+@admin.route("/movie/list/")
+def movie_list():
+    return render_template("admin/movie_list.html")
