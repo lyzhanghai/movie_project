@@ -57,3 +57,15 @@ def movie_add():
 @admin.route("/movie/list/")
 def movie_list():
     return render_template("admin/movie_list.html")
+
+
+# 定义添加预告视图
+@admin.route("/preview/add/")
+def preview_add():
+    return render_template("admin/preview_add.html")
+
+
+# 定义预告列表视图
+@admin.route("/preview/list/")
+def preview_list():
+    return render_template("admin/preview_list.html")
