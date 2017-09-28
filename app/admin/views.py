@@ -13,7 +13,7 @@ from flask import render_template, redirect, url_for
 # 调用蓝图（定义视图）
 @admin.route("/")
 def index():
-    return "<h1 style='color:blue'>This is admin</h1>"
+    return render_template("admin/index.html")
 
 
 # 定义登录视图
