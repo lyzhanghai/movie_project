@@ -11,6 +11,7 @@ from flask import render_template, redirect, url_for
 
 
 # 调用蓝图（定义视图）
+# 定义控制面板视图
 @admin.route("/")
 def index():
     return render_template("admin/index.html")
