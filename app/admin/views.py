@@ -33,3 +33,14 @@ def logout():
 @admin.route("/pwd/")
 def pwd():
     return render_template("admin/pwd.html")
+
+# 定义添加标签视图
+@admin.route("/tag/add/")
+def tag_add():
+    return render_template("admin/tag_add.html")
+
+
+# 定义标签列表视图
+@admin.route("/tag/list")
+def tag_list():
+    return render_template("admin/tag_list.html")
