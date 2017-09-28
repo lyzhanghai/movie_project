@@ -74,3 +74,9 @@ def index():
 @home.route("/animation/")
 def animation():
     return render_template("home/animation.html")
+
+
+# 定义电影搜索视图
+@home.route("/search/")
+def search():
+    return render_template("home/search.html")
