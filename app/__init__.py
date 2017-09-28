@@ -6,7 +6,7 @@
 # @datetime: 9/26 026 下午 07:29
 
 
-from flask import Flask
+from flask import Flask, render_template
 
 # 配置Flask
 app = Flask(__name__)
@@ -18,3 +18,9 @@ from app.admin import admin as admin_blueprint
 # 注册蓝图
 app.register_blueprint(home_blueprint)
 app.register_blueprint(admin_blueprint, url_prefix="/admin")  # 添加url前缀
+
+
+# 定义404页面视图
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template("home/404.html"), 404
