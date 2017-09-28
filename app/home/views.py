@@ -11,9 +11,9 @@ from flask import render_template, redirect, url_for
 
 
 # 调用蓝图（定义视图）
-@home.route("/")
-def index():
-    return render_template("home/index.html")
+# @home.route("/")
+# def index():
+#     return render_template("home/index.html")
 
 
 # 定义登录视图
@@ -62,3 +62,15 @@ def loginlog():
 @home.route("/moviecol/")
 def moviecol():
     return render_template("home/moviecol.html")
+
+
+# 定义首页列表视图
+@home.route("/")
+def index():
+    return render_template("home/index.html")
+
+
+# 定义首页动画视图
+@home.route("/animation/")
+def animation():
+    return render_template("home/animation.html")
