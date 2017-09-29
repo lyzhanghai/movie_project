@@ -11,11 +11,6 @@
     <link rel="stylesheet" href="{{ url_for('static',filename='ionicons/css/ionicons.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='admin/dist/css/AdminLTE.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='admin/plugins/iCheck/square/blue.css') }}">
-    <style>
-        .col-md-12, .login-box-msg {
-            color: red;
-        }
-    </style>
 </head>
 <body class="hold-transition login-page">
 <div class="login-box">
@@ -24,29 +19,29 @@
     </div>
     <div class="login-box-body">
         {% for msg in get_flashed_messages() %}
-        <p class="login-box-msg">{{ msg }}</p>
+        <p class="login-box-msg" style="color: red">{{ msg }}</p>
         {% endfor %}
         <form method="post" id="form-data">
             <div class="form-group has-feedback">
                 {{ form.account }}
                 <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
                 {% for err in form.account.errors %}
-                <div class="col-md-12">{{ err }}</div>
+                <div class="col-md-12" style="color: red">{{ err }}</div>
                 {% endfor %}
             </div>
             <div class="form-group has-feedback">
                 {{ form.pwd }}
                 <span class="glyphicon glyphicon-lock form-control-feedback"></span>
                 {% for err in form.pwd.errors %}
-                <div class="col-md-12">{{ err }}</div>
+                <div class="col-md-12" style="color: red">{{ err }}</div>
                 {% endfor %}
             </div>
             <div class="row">
                 <div class="col-xs-8">
                 </div>
                 <div class="col-xs-4">
-                    {{ form.submit }}
                     {{ form.csrf_token }}
+                    {{ form.submit }}
                 </div>
             </div>
         </form>

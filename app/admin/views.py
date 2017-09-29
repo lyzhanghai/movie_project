@@ -6,10 +6,11 @@
 # @datetime: 9/26 026 下午 07:34
 
 
+from app import db
 from app.admin import admin
 from flask import render_template, redirect, url_for, flash, session, request
-from app.admin.forms import LoginForm
-from app.models import Admin
+from app.admin.forms import LoginForm, TagForm
+from app.models import Admin, Tag
 from functools import wraps
 
 
@@ -64,17 +65,67 @@ def pwd():
 
 
 # 定义添加标签视图
-@admin.route("/tag/add/")
+@admin.route("/tag/add/", methods=["GET", "POST"])
 @admin_login_req
 def tag_add():
-    return render_template("admin/tag_add.html")
+    form = TagForm()
+    if form.validate_on_submit():
+        data = form.data
+        tag = Tag.query.filter_by(name=data["name"]).count()
+        if tag == 1:
+            flash("名称已经存在！", "err")
+            return redirect(url_for("admin.tag_add"))
+        tag = Tag(
+            name=data["name"]
+        )
+        db.session.add(tag)
+        db.session.commit()
+        flash("添加标签成功！", "ok")
+        return redirect(url_for("admin.tag_add"))
+    return render_template("admin/tag_add.html", form=form)
+
+
+# 定义编辑标签视图
+@admin.route("/tag/edit/<int:id>/", methods=["GET", "POST"])
+@admin_login_req
+def tag_edit(id=None):
+    form = TagForm()
+    tag = Tag.query.get_or_404(id)
+    if form.validate_on_submit():
+        data = form.data
+        tag_count = Tag.query.filter_by(name=data["name"]).count()
+        if tag.name != data["name"] and tag_count == 1:
+            flash("名称已经存在！", "err")
+            return redirect(url_for("admin.tag_edit", id=id))
+        tag.name = data["name"]
+        db.session.add(tag)
+        db.session.commit()
+        flash("修改标签成功！", "ok")
+        return redirect(url_for("admin.tag_edit", id=id))
+    return render_template("admin/tag_edit.html", form=form, tag=tag)
 
 
 # 定义标签列表视图
-@admin.route("/tag/list/")
+@admin.route("/tag/list/<int:page>/", methods=["GET"])
 @admin_login_req
-def tag_list():
-    return render_template("admin/tag_list.html")
+def tag_list(page=None):
+    if page is None:
+        page = 1
+    page_data = Tag.query.order_by(
+        Tag.addtime.desc()
+    ).paginate(page=page, per_page=15)
+    return render_template("admin/tag_list.html", page_data=page_data)
+
+
+# 定义标签删除视图
+@admin.route("/tag/del/<int:id>/", methods=["GET"])
+@admin_login_req
+def tag_del(id=None):
+    tag = Tag.query.filter_by(id=id).first_or_404()
+    db.session.delete(tag)
+    db.session.commit()
+    flash("删除标签成功！", "ok")
+    return redirect(url_for("admin.tag_list", page=1))
 
 
 # 定义添加电影视图
