@@ -111,3 +111,15 @@ def adminloginlog_list():
 @admin.route("/userloginlog/list/")
 def userloginlog_list():
     return render_template("admin/userloginlog_list.html")
+
+
+# 定义添加权限视图
+@admin.route("/auth/add/")
+def auth_add():
+    return render_template("admin/auth_add.html")
+
+
+# 定义权限列表视图
+@admin.route("/auth/list/")
+def auth_list():
+    return render_template("admin/auth_list.html")
