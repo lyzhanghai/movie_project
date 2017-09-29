@@ -123,3 +123,15 @@ def auth_add():
 @admin.route("/auth/list/")
 def auth_list():
     return render_template("admin/auth_list.html")
+
+
+# 定义添加角色视图
+@admin.route("/role/add/")
+def role_add():
+    return render_template("admin/role_add.html")
+
+
+# 定义角色列表视图
+@admin.route("/role/list/")
+def role_list():
+    return render_template("admin/role_list.html")
