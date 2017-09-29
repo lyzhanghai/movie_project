@@ -117,7 +117,7 @@ def tag_list(page=None):
         page = 1
     page_data = Tag.query.order_by(
         Tag.addtime.desc()
-    ).paginate(page=page, per_page=3)
+    ).paginate(page=page, per_page=15)  # 单页上限数量
     return render_template("admin/tag_list.html", page_data=page_data)
 
 
