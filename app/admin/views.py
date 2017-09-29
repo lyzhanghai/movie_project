@@ -135,3 +135,15 @@ def role_add():
 @admin.route("/role/list/")
 def role_list():
     return render_template("admin/role_list.html")
+
+
+# 定义添加管理员视图
+@admin.route("/admin/add/")
+def admin_add():
+    return render_template("admin/admin_add.html")
+
+
+# 定义管理员列表视图
+@admin.route("/admin/list/")
+def admin_list():
+    return render_template("admin/admin_list.html")
