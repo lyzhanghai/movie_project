@@ -93,3 +93,21 @@ def comment_list():
 @admin.route("/moviecol/list/")
 def moviecol_list():
     return render_template("admin/moviecol_list.html")
+
+
+# 定义操作日志列表视图
+@admin.route("/oplog/list/")
+def oplog_list():
+    return render_template("admin/oplog_list.html")
+
+
+# 定义管理员登录日志列表视图
+@admin.route("/adminloginlog/list/")
+def adminloginlog_list():
+    return render_template("admin/adminloginlog_list.html")
+
+
+# 定义会员登录日志列表视图
+@admin.route("/userloginlog/list/")
+def userloginlog_list():
+    return render_template("admin/userloginlog_list.html")
