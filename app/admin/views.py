@@ -94,26 +94,30 @@ def tag_edit(id=None):
     if form.validate_on_submit():
         data = form.data
         tag_count = Tag.query.filter_by(name=data["name"]).count()
-        if tag.name != data["name"] and tag_count == 1:
+        if tag_count == 1:
             flash("名称已经存在！", "err")
             return redirect(url_for("admin.tag_edit", id=id))
         tag.name = data["name"]
         db.session.add(tag)
         db.session.commit()
         flash("修改标签成功！", "ok")
-        return redirect(url_for("admin.tag_edit", id=id))
-    return render_template("admin/tag_edit.html", form=form, tag=tag)
+        return redirect(url_for("admin.tag_list", page=page_data.page))
+    return render_template("admin/tag_edit.html", form=form, tag=tag, page=page_data.page)
+
+
+page_data = None  # 为共享分页数据
 
 
 # 定义标签列表视图
 @admin.route("/tag/list/<int:page>/", methods=["GET"])
 @admin_login_req
 def tag_list(page=None):
+    global page_data
     if page is None:
         page = 1
     page_data = Tag.query.order_by(
         Tag.addtime.desc()
-    ).paginate(page=page, per_page=15)
+    ).paginate(page=page, per_page=3)
     return render_template("admin/tag_list.html", page_data=page_data)
 
 
@@ -125,7 +129,8 @@ def tag_del(id=None):
     db.session.delete(tag)
     db.session.commit()
     flash("删除标签成功！", "ok")
-    return redirect(url_for("admin.tag_list", page=1))
+    return redirect(url_for("admin.tag_list",
+                            page=page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1))
 
 
 # 定义添加电影视图
