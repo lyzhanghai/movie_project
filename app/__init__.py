@@ -7,10 +7,17 @@
 
 
 from flask import Flask, render_template
+from flask_sqlalchemy import SQLAlchemy
+import pymysql
 
-# 配置Flask
-app = Flask(__name__)
-app.debug = True
+app = Flask(__name__)  # 创建Flask对象
+
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@127.0.0.1:3306/movie"  # 定义Mysql数据库连接
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True  # 如果设置成 True (默认情况)，Flask-SQLAlchemy 将会追踪对象的修改并且发送信号
+app.config['SECRET_KEY'] = '6a8312d499ed42828bb85fefac3607b7'  # CSRF保护设置密钥
+app.debug = True  # 调试开关
+
+db = SQLAlchemy(app)  # 创建db对象
 
 from app.home import home as home_blueprint
 from app.admin import admin as admin_blueprint

@@ -6,17 +6,8 @@
 # @datetime: 9/26 026 下午 07:32
 
 
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from app import db
 from datetime import datetime
-import pymysql
-
-# 定义Mysql数据库连接
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@127.0.0.1:3306/movie"
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-
-db = SQLAlchemy(app)
 
 
 # 会员
@@ -163,6 +154,10 @@ class Admin(db.Model):
     def __repr__(self):
         return "<Admin %r>" % self.name
 
+    def check_pwd(self, pwd):
+        from werkzeug.security import check_password_hash
+        return check_password_hash(self.pwd, pwd)  # 验证密码是否正确，返回True和False
+
 
 # 管理员登录日志
 class Adminlog(db.Model):
@@ -189,6 +184,7 @@ class Oplog(db.Model):
         return "<Oplog %r>" % self.id
 
 
+"""
 # 将模型生成数据表
 if __name__ == "__main__":
     # db.create_all()
@@ -210,3 +206,4 @@ if __name__ == "__main__":
     )
     db.session.add(admin)
     db.session.commit()
+"""
