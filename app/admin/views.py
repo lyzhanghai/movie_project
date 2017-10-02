@@ -6,12 +6,16 @@
 # @datetime: 9/26 026 下午 07:34
 
 
-from app import db
+from app import db, app
 from app.admin import admin
 from flask import render_template, redirect, url_for, flash, session, request
-from app.admin.forms import LoginForm, TagForm
-from app.models import Admin, Tag
+from app.admin.forms import LoginForm, TagForm, MovieForm
+from app.models import Admin, Tag, Movie
 from functools import wraps
+from werkzeug.utils import secure_filename
+import os, uuid, datetime
+
+page_data = None  # 为共享分页数据
 
 
 # 定义登录判断装饰器
@@ -24,6 +28,13 @@ def admin_login_req(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
+
+# 修改文件名称
+def change_filename(filename):
+    fileinfo = os.path.splitext(filename)  # 对名字进行前后缀分离
+    filename = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + "_" + uuid.uuid4().hex + fileinfo[-1]  # 生成新文件名
+    return filename
 
 
 # 调用蓝图（定义视图）
@@ -91,6 +102,7 @@ def tag_add():
 def tag_edit(id=None):
     form = TagForm()
     tag = Tag.query.get_or_404(id)
+    page = page_data.page if page_data is not None else 1
     if form.validate_on_submit():
         data = form.data
         tag_count = Tag.query.filter_by(name=data["name"]).count()
@@ -101,11 +113,8 @@ def tag_edit(id=None):
         db.session.add(tag)
         db.session.commit()
         flash("修改标签成功！", "ok")
-        return redirect(url_for("admin.tag_list", page=page_data.page))
-    return render_template("admin/tag_edit.html", form=form, tag=tag, page=page_data.page)
-
-
-page_data = None  # 为共享分页数据
+        return redirect(url_for("admin.tag_list", page=page))
+    return render_template("admin/tag_edit.html", form=form, tag=tag, page=page)
 
 
 # 定义标签列表视图
@@ -117,7 +126,7 @@ def tag_list(page=None):
         page = 1
     page_data = Tag.query.order_by(
         Tag.addtime.desc()
-    ).paginate(page=page, per_page=15)  # 单页上限数量
+    ).paginate(page=page, per_page=app.config['PAGE_SET'])
     return render_template("admin/tag_list.html", page_data=page_data)
 
 
@@ -125,26 +134,142 @@ def tag_list(page=None):
 @admin.route("/tag/del/<int:id>/", methods=["GET"])
 @admin_login_req
 def tag_del(id=None):
+    if page_data is None:
+        page = 1
+    else:
+        page = page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1
     tag = Tag.query.filter_by(id=id).first_or_404()
     db.session.delete(tag)
     db.session.commit()
     flash("删除标签成功！", "ok")
-    return redirect(url_for("admin.tag_list",
-                            page=page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1))
+    return redirect(url_for("admin.tag_list", page=page))
 
 
 # 定义添加电影视图
-@admin.route("/movie/add/")
+@admin.route("/movie/add/", methods=["GET", "POST"])
 @admin_login_req
 def movie_add():
-    return render_template("admin/movie_add.html")
+    form = MovieForm()
+    if form.validate_on_submit():
+        data = form.data
+        if Movie.query.filter_by(title=data["title"]).count() == 1:
+            flash("影片已经存在！", "err")
+            return redirect(url_for("admin.movie_add"))
+        file_url = secure_filename(form.url.data.filename)  # 获取并转化为安全的电影文件名
+        file_logo = secure_filename(form.logo.data.filename)
+        if not os.path.exists(app.config['UP_DIR']):  # 存放目录不存在则创建
+            os.makedirs(app.config['UP_DIR'])
+            os.chmod(app.config['UP_DIR'], "rw")
+        url = change_filename(file_url)  # 调用函数生成新的文件名
+        logo = change_filename(file_logo)
+        form.url.data.save(app.config['UP_DIR'] + url)  # 保存上传的数据
+        form.logo.data.save(app.config['UP_DIR'] + logo)
+        movie = Movie(
+            title=data["title"],
+            url=url,
+            info=data["info"],
+            logo=logo,
+            star=int(data["star"]),
+            playnum=0,
+            commentnum=0,
+            tag_id=int(data["tag_id"]),
+            area=data["area"],
+            release_time=data["release_time"],
+            length=data["length"]
+        )
+        db.session.add(movie)
+        db.session.commit()
+        flash("添加电影成功！", "ok")
+        return redirect(url_for("admin.movie_add"))
+    return render_template("admin/movie_add.html", form=form)
+
+
+# 定义编辑标签视图
+@admin.route("/movie/edit/<int:id>/", methods=["GET", "POST"])
+@admin_login_req
+def movie_edit(id=None):
+    form = MovieForm()
+    form.url.validators = []  # 因为可以不做更改，所以不需要校验
+    form.logo.validators = []
+    movie = Movie.query.get_or_404(id)
+    page = page_data.page if page_data is not None else 1
+    if request.method == "GET":
+        form.info.data = movie.info
+        form.star.data = movie.star
+        form.tag_id.data = movie.tag_id
+    if form.validate_on_submit():
+        data = form.data
+        movie_count = Movie.query.filter_by(title=data["title"]).count()
+        if movie.title != data['title'] and movie_count == 1:
+            flash("影片已经存在！", "err")
+            return redirect(url_for("admin.movie_edit", id=id))
+
+        if not os.path.exists(app.config['UP_DIR']):  # 存放目录不存在则创建
+            os.makedirs(app.config['UP_DIR'])
+            os.chmod(app.config['UP_DIR'], "rw")
+
+        if form.url.data.filename != '':
+            old_url = movie.url
+            file_url = secure_filename(form.url.data.filename)  # 获取并转化为安全的电影文件名
+            movie.url = change_filename(file_url)  # 调用函数生成新的文件名
+            form.url.data.save(app.config['UP_DIR'] + movie.url)  # 保存上传的数据
+            if os.path.exists(app.config['UP_DIR'] + old_url):  # 删除旧文件
+                os.remove(app.config['UP_DIR'] + old_url)
+
+        if form.url.data.filename != '':
+            old_logo = movie.logo
+            file_logo = secure_filename(form.logo.data.filename)
+            movie.logo = change_filename(file_logo)
+            form.logo.data.save(app.config['UP_DIR'] + movie.logo)
+            if os.path.exists(app.config['UP_DIR'] + old_logo):
+                os.remove(app.config['UP_DIR'] + old_logo)
+
+        movie.title = data["title"]
+        movie.info = data["info"]
+        movie.star = int(data["star"])
+        movie.tag_id = int(data["tag_id"])
+        movie.area = data["area"]
+        movie.release_time = data["release_time"]
+        movie.length = data["length"]
+        db.session.add(movie)
+        db.session.commit()
+        flash("修改电影成功！", "ok")
+        return redirect(url_for("admin.movie_list", page=page))
+    return render_template("admin/movie_edit.html", form=form, movie=movie, page=page)
 
 
 # 定义电影列表视图
-@admin.route("/movie/list/")
+@admin.route("/movie/list/<int:page>/", methods=["GET"])
 @admin_login_req
-def movie_list():
-    return render_template("admin/movie_list.html")
+def movie_list(page=None):
+    global page_data
+    if page is None:
+        page = 1
+    page_data = Movie.query.join(Tag).filter(
+        Movie.tag_id == Tag.id
+    ).order_by(
+        Movie.addtime.desc()
+    ).paginate(page=page, per_page=app.config['PAGE_SET'])
+    return render_template("admin/movie_list.html", page_data=page_data)
+
+
+# 定义电影删除视图
+@admin.route("/movie/del/<int:id>/", methods=["GET"])
+@admin_login_req
+def movie_del(id=None):
+    if page_data is None:
+        page = 1
+    else:
+        page = page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1
+    movie = Movie.query.filter_by(id=id).first_or_404()
+    db.session.delete(movie)
+    db.session.commit()
+    if os.path.exists(app.config['UP_DIR'] + movie.url):  # 删除文件
+        os.remove(app.config['UP_DIR'] + movie.url)
+    if os.path.exists(app.config['UP_DIR'] + movie.logo):
+        os.remove(app.config['UP_DIR'] + movie.logo)
+    flash("删除电影成功！", "ok")
+    return redirect(url_for("admin.movie_list", page=page))
 
 
 # 定义添加预告视图

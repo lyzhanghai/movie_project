@@ -5,7 +5,7 @@
     <h1>微电影管理系统</h1>
     <ol class="breadcrumb">
         <li><a href="#"><i class="fa fa-dashboard"></i> 电影管理</a></li>
-        <li class="active">添加电影</li>
+        <li class="active">编辑电影</li>
     </ol>
 </section>
 <section class="content" id="showcontent">
@@ -13,16 +13,9 @@
         <div class="col-md-12">
             <div class="box box-primary">
                 <div class="box-header with-border">
-                    <h3 class="box-title">添加电影</h3>
+                    <h3 class="box-title">编辑电影</h3>
                 </div>
                 <form role="form" method="post" enctype="multipart/form-data">
-                    {% for msg in get_flashed_messages(category_filter=["ok"]) %}
-                    <div class="alert alert-success alert-dismissible">
-                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-                        <h4><i class="icon fa fa-check"></i> 操作成功 </h4>
-                        {{ msg }}
-                    </div>
-                    {% endfor %}
                     {% for msg in get_flashed_messages(category_filter=["err"]) %}
                     <div class="alert alert-danger alert-dismissible">
                         <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
@@ -33,7 +26,7 @@
                     <div class="box-body">
                         <div class="form-group">
                             <label for="input_title">{{ form.title.label }}</label>
-                            {{ form.title }}
+                            {{ form.title(value=movie.title) }}
                             {% for err in form.title.errors %}
                             <div class="col-md-12" style="color: red">{{ err }}</div>
                             {% endfor %}
@@ -61,7 +54,8 @@
                             {% for err in form.logo.errors %}
                             <div class="col-md-12" style="color: red">{{ err }}</div>
                             {% endfor %}
-                            <img data-src="holder.js/262x166" style="margin-top:5px;" class="img-responsive"
+                            <img src="{{ url_for('static', filename='uploads/'+movie.logo) }}"
+                                 style="margin-top:5px;" class="img-responsive"
                                  alt="">
                         </div>
                         <div class="form-group">
@@ -80,21 +74,21 @@
                         </div>
                         <div class="form-group">
                             <label for="input_area">{{ form.area.label }}</label>
-                            {{ form.area }}
+                            {{ form.area(value=movie.area) }}
                             {% for err in form.area.errors %}
                             <div class="col-md-12" style="color: red">{{ err }}</div>
                             {% endfor %}
                         </div>
                         <div class="form-group">
                             <label for="input_length">{{ form.length.label }}</label>
-                            {{ form.length }}
+                            {{ form.length(value=movie.length) }}
                             {% for err in form.length.errors %}
                             <div class="col-md-12" style="color: red">{{ err }}</div>
                             {% endfor %}
                         </div>
                         <div class="form-group">
                             <label for="input_release_time">{{ form.release_time.label }}</label>
-                            {{ form.release_time }}
+                            {{ form.release_time(value=movie.release_time) }}
                             {% for err in form.release_time.errors %}
                             <div class="col-md-12" style="color: red">{{ err }}</div>
                             {% endfor %}
@@ -103,6 +97,9 @@
                     <div class="box-footer">
                         {{ form.csrf_token }}
                         {{ form.submit }}
+                        <ul class="btn btn-default" style="margin-left:10px;">
+                            <a href="{{ url_for('admin.movie_list', page=page) }}">取消</a>
+                        </ul>
                     </div>
                 </form>
             </div>
@@ -146,8 +143,8 @@
     jwplayer("moviecontainer").setup({
         flashplayer: "{{ url_for('static', filename='jwplayer/jwplayer.flash.swf') }}",
         playlist: [{
-            file: "{{ url_for('static', filename='video/htpy.mp4') }}",
-            title: "环太平洋"
+            file: "{{ url_for('static', filename='uploads/'+movie.url) }}",
+            title: "{{ movie.title }}"
         }],
         modes: [{
             type: "html5"
