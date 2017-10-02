@@ -10,7 +10,7 @@ from app import db, app
 from app.admin import admin
 from flask import render_template, redirect, url_for, flash, session, request
 from app.admin.forms import LoginForm, TagForm, MovieForm, PreviewForm
-from app.models import Admin, Tag, Movie, Preview
+from app.models import Admin, Tag, Movie, Preview, User
 from functools import wraps
 from werkzeug.utils import secure_filename
 import os, uuid, datetime
@@ -134,7 +134,7 @@ def tag_list(page=None):
 @admin.route("/tag/del/<int:id>/", methods=["GET"])
 @admin_login_req
 def tag_del(id=None):
-    if page_data is None:
+    if page_data.pages == 1 or page_data is None:
         page = 1
     else:
         page = page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1
@@ -257,7 +257,7 @@ def movie_list(page=None):
 @admin.route("/movie/del/<int:id>/", methods=["GET"])
 @admin_login_req
 def movie_del(id=None):
-    if page_data is None:
+    if page_data.pages == 1 or page_data is None:
         page = 1
     else:
         page = page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1
@@ -352,7 +352,7 @@ def preview_list(page=None):
 @admin.route("/preview/del/<int:id>/", methods=["GET"])
 @admin_login_req
 def preview_del(id=None):
-    if page_data is None:
+    if page_data.pages == 1 or page_data is None:
         page = 1
     else:
         page = page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1
@@ -366,17 +366,42 @@ def preview_del(id=None):
 
 
 # 定义会员列表视图
-@admin.route("/user/list/")
+@admin.route("/user/list/<int:page>/", methods=["GET"])
 @admin_login_req
-def user_list():
-    return render_template("admin/user_list.html")
+def user_list(page=None):
+    global page_data
+    if page is None:
+        page = 1
+    page_data = User.query.order_by(
+        User.addtime.desc()
+    ).paginate(page=page, per_page=app.config['PAGE_SET'])
+    return render_template("admin/user_list.html", page_data=page_data)
 
 
 # 定义查看会员视图
-@admin.route("/user/view/")
+@admin.route("/user/view/<int:id>/", methods=["GET"])
 @admin_login_req
-def user_view():
-    return render_template("admin/user_view.html")
+def user_view(id=None):
+    user = User.query.get_or_404(id)
+    page = page_data.page if page_data is not None else 1
+    return render_template("admin/user_view.html", user=user, page=page)
+
+
+# 定义会员删除视图
+@admin.route("/user/del/<int:id>/", methods=["GET"])
+@admin_login_req
+def user_del(id=None):
+    if page_data.pages == 1 or page_data is None:
+        page = 1
+    else:
+        page = page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1
+    user = User.query.filter_by(id=id).first_or_404()
+    db.session.delete(user)
+    db.session.commit()
+    if os.path.exists(app.config['UP_DIR'] + "users" + os.sep + user.face):
+        os.remove(app.config['UP_DIR'] + "users" + os.sep + user.face)
+    flash("删除会员成功！", "ok")
+    return redirect(url_for("admin.user_list", page=page))
 
 
 # 定义评论列表视图
