@@ -9,8 +9,8 @@
 from app import db, app
 from app.admin import admin
 from flask import render_template, redirect, url_for, flash, session, request
-from app.admin.forms import LoginForm, TagForm, MovieForm
-from app.models import Admin, Tag, Movie
+from app.admin.forms import LoginForm, TagForm, MovieForm, PreviewForm
+from app.models import Admin, Tag, Movie, Preview
 from functools import wraps
 from werkzeug.utils import secure_filename
 import os, uuid, datetime
@@ -201,7 +201,7 @@ def movie_edit(id=None):
         data = form.data
         movie_count = Movie.query.filter_by(title=data["title"]).count()
         if movie.title != data['title'] and movie_count == 1:
-            flash("影片已经存在！", "err")
+            flash("片名已经存在！", "err")
             return redirect(url_for("admin.movie_edit", id=id))
 
         if not os.path.exists(app.config['UP_DIR']):  # 存放目录不存在则创建
@@ -216,7 +216,7 @@ def movie_edit(id=None):
             if os.path.exists(app.config['UP_DIR'] + old_url):  # 删除旧文件
                 os.remove(app.config['UP_DIR'] + old_url)
 
-        if form.url.data.filename != '':
+        if form.logo.data.filename != '':
             old_logo = movie.logo
             file_logo = secure_filename(form.logo.data.filename)
             movie.logo = change_filename(file_logo)
@@ -273,17 +273,96 @@ def movie_del(id=None):
 
 
 # 定义添加预告视图
-@admin.route("/preview/add/")
+@admin.route("/preview/add/", methods=["GET", "POST"])
 @admin_login_req
 def preview_add():
-    return render_template("admin/preview_add.html")
+    form = PreviewForm()
+    if form.validate_on_submit():
+        data = form.data
+        preview = Preview.query.filter_by(title=data["title"]).count()
+        if preview == 1:
+            flash("预告标题已经存在！", "err")
+            return redirect(url_for("admin.preview_add"))
+        file_logo = secure_filename(form.logo.data.filename)
+        if not os.path.exists(app.config['UP_DIR']):
+            os.makedirs(app.config['UP_DIR'])
+            os.chmod(app.config['UP_DIR'], "rw")
+        logo = change_filename(file_logo)
+        form.logo.data.save(app.config['UP_DIR'] + logo)
+        preview = Preview(
+            title=data["title"],
+            logo=logo
+        )
+        db.session.add(preview)
+        db.session.commit()
+        flash("添加预告成功！", "ok")
+        return redirect(url_for("admin.preview_add"))
+    return render_template("admin/preview_add.html", form=form)
+
+
+# 定义编辑预告视图
+@admin.route("/preview/edit/<int:id>/", methods=["GET", "POST"])
+@admin_login_req
+def preview_edit(id=None):
+    form = PreviewForm()
+    form.logo.validators = []
+    preview = Preview.query.get_or_404(id)
+    page = page_data.page if page_data is not None else 1
+    if form.validate_on_submit():
+        data = form.data
+        preview_count = Preview.query.filter_by(title=data["title"]).count()
+        if preview.title != data['title'] and preview_count == 1:
+            flash("预告标题已经存在！", "err")
+            return redirect(url_for("admin.preview_edit", id=id))
+
+        if not os.path.exists(app.config['UP_DIR']):
+            os.makedirs(app.config['UP_DIR'])
+            os.chmod(app.config['UP_DIR'], "rw")
+
+        if form.logo.data.filename != '':
+            old_logo = preview.logo
+            file_logo = secure_filename(form.logo.data.filename)
+            preview.logo = change_filename(file_logo)
+            form.logo.data.save(app.config['UP_DIR'] + preview.logo)
+            if os.path.exists(app.config['UP_DIR'] + old_logo):
+                os.remove(app.config['UP_DIR'] + old_logo)
+
+        preview.title = data["title"]
+        db.session.add(preview)
+        db.session.commit()
+        flash("修改预告成功！", "ok")
+        return redirect(url_for("admin.preview_list", page=page))
+    return render_template("admin/preview_edit.html", form=form, preview=preview, page=page)
 
 
 # 定义预告列表视图
-@admin.route("/preview/list/")
+@admin.route("/preview/list/<int:page>/", methods=["GET", "POST"])
 @admin_login_req
-def preview_list():
-    return render_template("admin/preview_list.html")
+def preview_list(page=None):
+    global page_data
+    if page is None:
+        page = 1
+    page_data = Preview.query.order_by(
+        Preview.addtime.desc()
+    ).paginate(page=page, per_page=app.config['PAGE_SET'])
+    return render_template("admin/preview_list.html", page_data=page_data)
+
+
+# 定义预告删除视图
+@admin.route("/preview/del/<int:id>/", methods=["GET"])
+@admin_login_req
+def preview_del(id=None):
+    if page_data is None:
+        page = 1
+    else:
+        page = page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1
+    preview = Preview.query.filter_by(id=id).first_or_404()
+    db.session.delete(preview)
+    db.session.commit()
+    if os.path.exists(app.config['UP_DIR'] + preview.logo):
+        os.remove(app.config['UP_DIR'] + preview.logo)
+    flash("删除预告成功！", "ok")
+    return redirect(url_for("admin.preview_list", page=page))
 
 
 # 定义会员列表视图
