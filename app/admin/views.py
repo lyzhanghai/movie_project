@@ -10,20 +10,31 @@ from app import db, app
 from app.admin import admin
 from flask import render_template, redirect, url_for, flash, session, request
 from app.admin.forms import LoginForm, TagForm, MovieForm, PreviewForm, PwdForm
-from app.models import Admin, Tag, Movie, Preview, User, Comment, Moviecol
+from app.models import Admin, Tag, Movie, Preview, User, Comment, Moviecol, Oplog, Adminlog, Userlog
 from functools import wraps
 from werkzeug.utils import secure_filename
 import os, uuid, datetime
 
-page_data = None  # 为共享分页数据
+login_time = None  # 用于存储登录时间
+page_data = None  # 存储分页数据以便返回使用
+
+
+# 上下文处理器（将变量直接提供给模板使用）
+@admin.context_processor
+def tpl_extra():
+    global login_time
+    data = dict(
+        login_time=login_time  # 用于存储登录时间
+    )
+    return data
 
 
 # 定义登录判断装饰器
 def admin_login_req(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # 判断session是否存在，并做处理
-        if "admin" not in session:
+        # 服务器重启或session不存在时请求登录
+        if login_time == None or "admin" not in session:
             return redirect(url_for("admin.login", next=request.url))
         return f(*args, **kwargs)
 
@@ -48,6 +59,7 @@ def index():
 # 定义登录视图
 @admin.route("/login/", methods=["GET", "POST"])
 def login():
+    global login_time
     form = LoginForm()  # 导入登录表单
     if form.validate_on_submit():  # 验证是否有提交表单
         data = form.data
@@ -56,6 +68,14 @@ def login():
             flash("密码错误！", "err")
             return redirect(url_for("admin.login"))
         session["admin"] = data["account"]
+        session["admin_id"] = admin.id
+        adminlog = Adminlog(
+            admin_id=admin.id,
+            ip=request.remote_addr
+        )
+        db.session.add(adminlog)
+        db.session.commit()
+        login_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 生成登录时间
         return redirect(request.args.get("next") or url_for("admin.index"))
     return render_template("admin/login.html", form=form)
 
@@ -65,6 +85,7 @@ def login():
 @admin_login_req
 def logout():
     session.pop("admin")  # 移除用户session
+    session.pop("admin_id")
     return redirect(url_for("admin.login"))
 
 
@@ -102,6 +123,13 @@ def tag_add():
         db.session.add(tag)
         db.session.commit()
         flash("添加标签成功！", "ok")
+        oplog = Oplog(
+            admin_id=session["admin_id"],
+            ip=request.remote_addr,
+            reason="添加一个标签：%s" % data["name"]
+        )
+        db.session.add(oplog)
+        db.session.commit()
         return redirect(url_for("admin.tag_add"))
     return render_template("admin/tag_add.html", form=form)
 
@@ -116,7 +144,7 @@ def tag_edit(id=None):
     if form.validate_on_submit():
         data = form.data
         tag_count = Tag.query.filter_by(name=data["name"]).count()
-        if tag_count == 1:
+        if tag_count == 1 and tag.name != data['name']:
             flash("名称已经存在！", "err")
             return redirect(url_for("admin.tag_edit", id=id))
         tag.name = data["name"]
@@ -210,7 +238,7 @@ def movie_edit(id=None):
     if form.validate_on_submit():
         data = form.data
         movie_count = Movie.query.filter_by(title=data["title"]).count()
-        if movie.title != data['title'] and movie_count == 1:
+        if movie_count == 1 and movie.title != data['title']:
             flash("片名已经存在！", "err")
             return redirect(url_for("admin.movie_edit", id=id))
 
@@ -321,7 +349,7 @@ def preview_edit(id=None):
     if form.validate_on_submit():
         data = form.data
         preview_count = Preview.query.filter_by(title=data["title"]).count()
-        if preview.title != data['title'] and preview_count == 1:
+        if preview_count == 1 and preview.title != data['title']:
             flash("预告标题已经存在！", "err")
             return redirect(url_for("admin.preview_edit", id=id))
 
@@ -477,24 +505,48 @@ def moviecol_del(id=None):
 
 
 # 定义操作日志列表视图
-@admin.route("/oplog/list/")
+@admin.route("/oplog/list/<int:page>/", methods=["GET"])
 @admin_login_req
-def oplog_list():
-    return render_template("admin/oplog_list.html")
+def oplog_list(page=None):
+    global page_data
+    if page is None:
+        page = 1
+    page_data = Oplog.query.join(Admin).filter(
+        Oplog.admin_id == Admin.id
+    ).order_by(
+        Oplog.addtime.desc()
+    ).paginate(page=page, per_page=app.config['PAGE_SET'])
+    return render_template("admin/oplog_list.html", page_data=page_data)
 
 
 # 定义管理员登录日志列表视图
-@admin.route("/adminloginlog/list/")
+@admin.route("/adminloginlog/list/<int:page>/", methods=["GET"])
 @admin_login_req
-def adminloginlog_list():
-    return render_template("admin/adminloginlog_list.html")
+def adminloginlog_list(page=None):
+    global page_data
+    if page is None:
+        page = 1
+    page_data = Adminlog.query.join(Admin).filter(
+        Adminlog.admin_id == Admin.id
+    ).order_by(
+        Adminlog.addtime.desc()
+    ).paginate(page=page, per_page=app.config['PAGE_SET'])
+    return render_template("admin/adminloginlog_list.html", page_data=page_data)
 
 
 # 定义会员登录日志列表视图
-@admin.route("/userloginlog/list/")
+@admin.route("/userloginlog/list/<int:page>/", methods=["GET"])
 @admin_login_req
-def userloginlog_list():
-    return render_template("admin/userloginlog_list.html")
+def userloginlog_list(page=None):
+    global page_data
+    if page is None:
+        page = 1
+    page_data = Userlog.query.join(User).filter(
+        Userlog.user_id == User.id
+    ).order_by(
+        Userlog.addtime.desc()
+    ).paginate(page=page, per_page=app.config['PAGE_SET'])
+    return render_template("admin/userloginlog_list.html", page_data=page_data)
 
 
 # 定义添加权限视图

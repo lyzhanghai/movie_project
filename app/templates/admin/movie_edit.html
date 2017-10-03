@@ -97,9 +97,8 @@
                     <div class="box-footer">
                         {{ form.csrf_token }}
                         {{ form.submit }}
-                        <ul class="btn btn-default" style="margin-left:10px;">
-                            <a href="{{ url_for('admin.movie_list', page=page) }}">取消</a>
-                        </ul>
+                        <a class="btn btn-default" style="margin-left:10px;color: #367fa9"
+                           href="{{ url_for('admin.movie_list', page=page) }}">取消</a>
                     </div>
                 </form>
             </div>
