@@ -102,6 +102,13 @@ def pwd():
         db.session.add(admin)
         db.session.commit()
         flash("修改密码成功，请重新登录！", "ok")
+        oplog = Oplog(
+            admin_id=session["admin_id"],
+            ip=request.remote_addr,
+            reason="修改了密码"
+        )
+        db.session.add(oplog)
+        db.session.commit()
         return redirect(url_for("admin.logout"))
     return render_template("admin/pwd.html", form=form)
 
@@ -147,6 +154,14 @@ def tag_edit(id=None):
         if tag_count == 1 and tag.name != data['name']:
             flash("名称已经存在！", "err")
             return redirect(url_for("admin.tag_edit", id=id))
+        oplog = Oplog(
+            admin_id=session["admin_id"],
+            ip=request.remote_addr,
+            reason="修改标签“%s”为“%s”" % (tag.name, data["name"])
+        )
+        db.session.add(oplog)
+        db.session.commit()
+
         tag.name = data["name"]
         db.session.add(tag)
         db.session.commit()
@@ -180,6 +195,13 @@ def tag_del(id=None):
     db.session.delete(tag)
     db.session.commit()
     flash("删除标签成功！", "ok")
+    oplog = Oplog(
+        admin_id=session["admin_id"],
+        ip=request.remote_addr,
+        reason="删除标签：%s" % tag.name
+    )
+    db.session.add(oplog)
+    db.session.commit()
     return redirect(url_for("admin.tag_list", page=page))
 
 
@@ -218,6 +240,13 @@ def movie_add():
         db.session.add(movie)
         db.session.commit()
         flash("添加电影成功！", "ok")
+        oplog = Oplog(
+            admin_id=session["admin_id"],
+            ip=request.remote_addr,
+            reason="添加一部电影：%s" % data["title"]
+        )
+        db.session.add(oplog)
+        db.session.commit()
         return redirect(url_for("admin.movie_add"))
     return render_template("admin/movie_add.html", form=form)
 
@@ -261,6 +290,14 @@ def movie_edit(id=None):
             form.logo.data.save(app.config['UP_DIR'] + movie.logo)
             if os.path.exists(app.config['UP_DIR'] + old_logo):
                 os.remove(app.config['UP_DIR'] + old_logo)
+
+        oplog = Oplog(
+            admin_id=session["admin_id"],
+            ip=request.remote_addr,
+            reason="修改电影：%s（原名：%s）" % (movie.title, data["title"])
+        )
+        db.session.add(oplog)
+        db.session.commit()
 
         movie.title = data["title"]
         movie.info = data["info"]
@@ -307,6 +344,13 @@ def movie_del(id=None):
     if os.path.exists(app.config['UP_DIR'] + movie.logo):
         os.remove(app.config['UP_DIR'] + movie.logo)
     flash("删除电影成功！", "ok")
+    oplog = Oplog(
+        admin_id=session["admin_id"],
+        ip=request.remote_addr,
+        reason="删除电影：%s" % movie.title
+    )
+    db.session.add(oplog)
+    db.session.commit()
     return redirect(url_for("admin.movie_list", page=page))
 
 
@@ -334,6 +378,13 @@ def preview_add():
         db.session.add(preview)
         db.session.commit()
         flash("添加预告成功！", "ok")
+        oplog = Oplog(
+            admin_id=session["admin_id"],
+            ip=request.remote_addr,
+            reason="添加一部电影预告：%s" % data["title"]
+        )
+        db.session.add(oplog)
+        db.session.commit()
         return redirect(url_for("admin.preview_add"))
     return render_template("admin/preview_add.html", form=form)
 
@@ -364,6 +415,14 @@ def preview_edit(id=None):
             form.logo.data.save(app.config['UP_DIR'] + preview.logo)
             if os.path.exists(app.config['UP_DIR'] + old_logo):
                 os.remove(app.config['UP_DIR'] + old_logo)
+
+        oplog = Oplog(
+            admin_id=session["admin_id"],
+            ip=request.remote_addr,
+            reason="修改电影预告：%s（原名：%s）" % (preview.title, data["title"])
+        )
+        db.session.add(oplog)
+        db.session.commit()
 
         preview.title = data["title"]
         db.session.add(preview)
@@ -400,6 +459,13 @@ def preview_del(id=None):
     if os.path.exists(app.config['UP_DIR'] + preview.logo):
         os.remove(app.config['UP_DIR'] + preview.logo)
     flash("删除预告成功！", "ok")
+    oplog = Oplog(
+        admin_id=session["admin_id"],
+        ip=request.remote_addr,
+        reason="删除电影预告：%s" % preview.title
+    )
+    db.session.add(oplog)
+    db.session.commit()
     return redirect(url_for("admin.preview_list", page=page))
 
 
@@ -439,6 +505,13 @@ def user_del(id=None):
     if os.path.exists(app.config['UP_DIR'] + "users" + os.sep + user.face):
         os.remove(app.config['UP_DIR'] + "users" + os.sep + user.face)
     flash("删除会员成功！", "ok")
+    oplog = Oplog(
+        admin_id=session["admin_id"],
+        ip=request.remote_addr,
+        reason="删除会员：%s" % user.name
+    )
+    db.session.add(oplog)
+    db.session.commit()
     return redirect(url_for("admin.user_list", page=page))
 
 
@@ -467,9 +540,18 @@ def comment_del(id=None):
     else:
         page = page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1
     comment = Comment.query.filter_by(id=id).first_or_404()
+    user = User.query.filter_by(id=comment.user_id).first_or_404()
+    movie = Movie.query.filter_by(id=comment.movie_id).first_or_404()
     db.session.delete(comment)
     db.session.commit()
     flash("删除评论成功！", "ok")
+    oplog = Oplog(
+        admin_id=session["admin_id"],
+        ip=request.remote_addr,
+        reason="删除会员「%s(%s)」在《%s》的评论：%s" % (user.name, user.id, movie.title, comment.content)
+    )
+    db.session.add(oplog)
+    db.session.commit()
     return redirect(url_for("admin.comment_list", page=page))
 
 
@@ -498,9 +580,18 @@ def moviecol_del(id=None):
     else:
         page = page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1
     moviecol = Moviecol.query.filter_by(id=id).first_or_404()
+    user = User.query.filter_by(id=moviecol.user_id).first_or_404()
+    movie = Movie.query.filter_by(id=moviecol.movie_id).first_or_404()
     db.session.delete(moviecol)
     db.session.commit()
     flash("删除收藏成功！", "ok")
+    oplog = Oplog(
+        admin_id=session["admin_id"],
+        ip=request.remote_addr,
+        reason="删除会员「%s(%s)」对电影《%s》的收藏" % (user.name, user.id, movie.title)
+    )
+    db.session.add(oplog)
+    db.session.commit()
     return redirect(url_for("admin.moviecol_list", page=page))
 
 
