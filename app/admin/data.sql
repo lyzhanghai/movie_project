@@ -23,3 +23,17 @@ insert into comment(movie_id,user_id,content,addtime) values(8,5,"难看",now())
 insert into comment(movie_id,user_id,content,addtime) values(8,6,"无聊",now());
 insert into comment(movie_id,user_id,content,addtime) values(8,7,"乏味",now());
 insert into comment(movie_id,user_id,content,addtime) values(8,8,"无感",now());
+
+ALTER TABLE comment auto_increment=1;
+
+/*收藏*/
+insert into moviecol(movie_id,user_id,addtime) values(7,1,now());
+insert into moviecol(movie_id,user_id,addtime) values(7,2,now());
+insert into moviecol(movie_id,user_id,addtime) values(7,3,now());
+insert into moviecol(movie_id,user_id,addtime) values(7,4,now());
+insert into moviecol(movie_id,user_id,addtime) values(8,5,now());
+insert into moviecol(movie_id,user_id,addtime) values(8,6,now());
+insert into moviecol(movie_id,user_id,addtime) values(8,7,now());
+insert into moviecol(movie_id,user_id,addtime) values(8,8,now());
+
+ALTER TABLE moviecol auto_increment=1;

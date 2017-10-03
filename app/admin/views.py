@@ -10,7 +10,7 @@ from app import db, app
 from app.admin import admin
 from flask import render_template, redirect, url_for, flash, session, request
 from app.admin.forms import LoginForm, TagForm, MovieForm, PreviewForm
-from app.models import Admin, Tag, Movie, Preview, User, Comment
+from app.models import Admin, Tag, Movie, Preview, User, Comment, Moviecol
 from functools import wraps
 from werkzeug.utils import secure_filename
 import os, uuid, datetime
@@ -419,6 +419,7 @@ def comment_list(page=None):
     ).paginate(page=page, per_page=app.config['PAGE_SET'])
     return render_template("admin/comment_list.html", page_data=page_data)
 
+
 # 定义评论删除视图
 @admin.route("/comment/del/<int:id>/", methods=["GET"])
 @admin_login_req
@@ -435,10 +436,34 @@ def comment_del(id=None):
 
 
 # 定义收藏列表视图
-@admin.route("/moviecol/list/")
+@admin.route("/moviecol/list/<int:page>/", methods=["GET"])
 @admin_login_req
-def moviecol_list():
-    return render_template("admin/moviecol_list.html")
+def moviecol_list(page=None):
+    global page_data
+    if page is None:
+        page = 1
+    page_data = Moviecol.query.join(Movie).join(User).filter(
+        Moviecol.movie_id == Movie.id,
+        Moviecol.user_id == User.id
+    ).order_by(
+        Moviecol.addtime.desc()
+    ).paginate(page=page, per_page=app.config['PAGE_SET'])
+    return render_template("admin/moviecol_list.html", page_data=page_data)
+
+
+# 定义收藏删除视图
+@admin.route("/moviecol/del/<int:id>/", methods=["GET"])
+@admin_login_req
+def moviecol_del(id=None):
+    if page_data.pages == 1 or page_data is None:
+        page = 1
+    else:
+        page = page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1
+    moviecol = Moviecol.query.filter_by(id=id).first_or_404()
+    db.session.delete(moviecol)
+    db.session.commit()
+    flash("删除收藏成功！", "ok")
+    return redirect(url_for("admin.moviecol_list", page=page))
 
 
 # 定义操作日志列表视图
