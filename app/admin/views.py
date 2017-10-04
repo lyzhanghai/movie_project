@@ -766,7 +766,7 @@ def role_edit(id=None):
     page = page_data.page if page_data is not None else 1
     if request.method == "GET":
         form.name.data = role.name
-        # form.url.data = auth.url
+        form.auths.data = list(map(lambda v: int(v), role.auths.split(",")))
     if form.validate_on_submit():
         data = form.data
         oplog = Oplog(
@@ -778,7 +778,7 @@ def role_edit(id=None):
         db.session.commit()
 
         role.name = data["name"]
-        # auth.url = data["url"]
+        role.auths = ",".join(map(lambda v: str(v), data["auths"]))
         db.session.add(role)
         db.session.commit()
         flash("修改角色成功！", "ok")
