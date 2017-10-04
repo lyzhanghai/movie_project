@@ -9,14 +9,15 @@
 from app import db, app
 from app.admin import admin
 from flask import render_template, redirect, url_for, flash, session, request
-from app.admin.forms import LoginForm, TagForm, MovieForm, PreviewForm, PwdForm, AuthForm
-from app.models import Admin, Tag, Movie, Preview, User, Comment, Moviecol, Oplog, Adminlog, Userlog, Auth
+from app.admin.forms import LoginForm, TagForm, MovieForm, PreviewForm, PwdForm, AuthForm, RoleForm
+from app.models import Admin, Tag, Movie, Preview, User, Comment, Moviecol, Oplog, Adminlog, Userlog, Auth, Role
 from functools import wraps
 from werkzeug.utils import secure_filename
 import os, uuid, datetime
 
 login_time = None  # 用于存储登录时间
 page_data = None  # 存储分页数据以便返回使用
+edit_role_name = None  # 存储编辑角色页的旧角色名称
 
 
 # 上下文处理器（将变量直接提供给模板使用）
@@ -691,7 +692,7 @@ def auth_edit(id=None):
         db.session.commit()
         flash("修改权限成功！", "ok")
         return redirect(url_for("admin.auth_list", page=page))
-    return render_template("admin/auth_edit.html", form=form, auth=auth, page=page)
+    return render_template("admin/auth_edit.html", form=form, page=page)
 
 
 # 定义权限列表视图
@@ -730,17 +731,94 @@ def auth_del(id=None):
 
 
 # 定义添加角色视图
-@admin.route("/role/add/")
+@admin.route("/role/add/", methods=["GET", "POST"])
 @admin_login_req
 def role_add():
-    return render_template("admin/role_add.html")
+    form = RoleForm()
+    if form.validate_on_submit():
+        data = form.data
+        role = Role(
+            name=data["name"],
+            auths=",".join(map(lambda v: str(v), data["auths"]))
+        )
+        db.session.add(role)
+        db.session.commit()
+        flash("添加角色成功！", "ok")
+        oplog = Oplog(
+            admin_id=session["admin_id"],
+            ip=request.remote_addr,
+            reason="添加新角色：%s" % data["name"]
+        )
+        db.session.add(oplog)
+        db.session.commit()
+        return redirect(url_for("admin.role_add"))
+    return render_template("admin/role_add.html", form=form)
+
+
+# 定义编辑角色视图
+@admin.route("/role/edit/<int:id>/", methods=["GET", "POST"])
+@admin_login_req
+def role_edit(id=None):
+    global edit_role_name
+    form = RoleForm()
+    role = Role.query.get_or_404(id)
+    edit_role_name = role.name
+    page = page_data.page if page_data is not None else 1
+    if request.method == "GET":
+        form.name.data = role.name
+        # form.url.data = auth.url
+    if form.validate_on_submit():
+        data = form.data
+        oplog = Oplog(
+            admin_id=session["admin_id"],
+            ip=request.remote_addr,
+            reason="修改角色：%s（原名：%s）" % (data["name"], role.name)
+        )
+        db.session.add(oplog)
+        db.session.commit()
+
+        role.name = data["name"]
+        # auth.url = data["url"]
+        db.session.add(role)
+        db.session.commit()
+        flash("修改角色成功！", "ok")
+        return redirect(url_for("admin.role_list", page=page))
+    return render_template("admin/role_edit.html", form=form, page=page)
 
 
 # 定义角色列表视图
-@admin.route("/role/list/")
+@admin.route("/role/list/<int:page>/", methods=["GET"])
 @admin_login_req
-def role_list():
-    return render_template("admin/role_list.html")
+def role_list(page=None):
+    global page_data
+    if page is None:
+        page = 1
+    page_data = Role.query.order_by(
+        Role.addtime.desc()
+    ).paginate(page=page, per_page=app.config['PAGE_SET'])
+    return render_template("admin/role_list.html", page_data=page_data)
+
+
+# 定义角色删除视图
+@admin.route("/role/del/<int:id>/", methods=["GET"])
+@admin_login_req
+def role_del(id=None):
+    if page_data.pages == 1 or page_data is None:
+        page = 1
+    else:
+        page = page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1
+    role = Role.query.filter_by(id=id).first_or_404()
+    db.session.delete(role)
+    db.session.commit()
+    flash("删除角色成功！", "ok")
+    oplog = Oplog(
+        admin_id=session["admin_id"],
+        ip=request.remote_addr,
+        reason="删除角色：%s" % role.name
+    )
+    db.session.add(oplog)
+    db.session.commit()
+    return redirect(url_for("admin.role_list", page=page))
 
 
 # 定义添加管理员视图

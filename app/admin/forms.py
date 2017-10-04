@@ -6,11 +6,9 @@
 # @datetime: 9/26 026 下午 07:35
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, FileField, TextAreaField, SelectField
+from wtforms import StringField, PasswordField, SubmitField, FileField, TextAreaField, SelectField, SelectMultipleField
 from wtforms.validators import DataRequired, ValidationError
-from app.models import Admin, Tag, Auth
-
-tags = Tag.query.all()  # 查询所有标签
+from app.models import Admin, Tag, Auth, Role
 
 
 class LoginForm(FlaskForm):
@@ -141,7 +139,7 @@ class MovieForm(FlaskForm):
             DataRequired("请选择标签！")
         ],
         coerce=int,
-        choices=[(0, "未选择")] + [(v.id, v.name) for v in tags],
+        choices=[(0, "未选择")] + [(v.id, v.name) for v in Tag.query.all()],
         description="标签",
         render_kw={
             "class": "form-control",
@@ -307,3 +305,43 @@ class AuthForm(FlaskForm):
         auth = Auth.query.filter_by(url=field.data).count()
         if auth == 1:
             raise ValidationError("地址已经存在！")
+
+
+class RoleForm(FlaskForm):
+    """角色表单"""
+    name = StringField(
+        label="角色名称",
+        validators=[
+            DataRequired("请输入角色名称！")
+        ],
+        description="角色名称",
+        render_kw={
+            "class": "form-control",
+            "id": "input_name",
+            "placeholder": "请输入角色名称！"
+        }
+    )
+    auths = SelectMultipleField(
+        label="权限列表",
+        validators=[
+            DataRequired("请选择操作权限！")
+        ],
+        coerce=int,
+        choices=[(v.id, v.name) for v in Auth.query.all()],
+        description="权限列表",
+        render_kw={
+            "class": "form-control"
+        }
+    )
+    submit = SubmitField(
+        '提交',
+        render_kw={
+            "class": "btn btn-primary"
+        }
+    )
+
+    def validate_name(self, field):
+        if Role.query.filter_by(name=field.data).count() == 1:
+            from app.admin.views import edit_role_name
+            if edit_role_name != field.data:
+                raise ValidationError("名称已经存在！")
