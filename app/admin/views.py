@@ -9,8 +9,8 @@
 from app import db, app
 from app.admin import admin
 from flask import render_template, redirect, url_for, flash, session, request
-from app.admin.forms import LoginForm, TagForm, MovieForm, PreviewForm, PwdForm
-from app.models import Admin, Tag, Movie, Preview, User, Comment, Moviecol, Oplog, Adminlog, Userlog
+from app.admin.forms import LoginForm, TagForm, MovieForm, PreviewForm, PwdForm, AuthForm
+from app.models import Admin, Tag, Movie, Preview, User, Comment, Moviecol, Oplog, Adminlog, Userlog, Auth
 from functools import wraps
 from werkzeug.utils import secure_filename
 import os, uuid, datetime
@@ -133,7 +133,7 @@ def tag_add():
         oplog = Oplog(
             admin_id=session["admin_id"],
             ip=request.remote_addr,
-            reason="添加一个标签：%s" % data["name"]
+            reason="添加新标签：%s" % data["name"]
         )
         db.session.add(oplog)
         db.session.commit()
@@ -243,7 +243,7 @@ def movie_add():
         oplog = Oplog(
             admin_id=session["admin_id"],
             ip=request.remote_addr,
-            reason="添加一部电影：%s" % data["title"]
+            reason="添加新电影：%s" % data["title"]
         )
         db.session.add(oplog)
         db.session.commit()
@@ -294,7 +294,7 @@ def movie_edit(id=None):
         oplog = Oplog(
             admin_id=session["admin_id"],
             ip=request.remote_addr,
-            reason="修改电影：%s（原名：%s）" % (movie.title, data["title"])
+            reason="修改电影：%s（原名：%s）" % (data["title"], movie.title)
         )
         db.session.add(oplog)
         db.session.commit()
@@ -381,7 +381,7 @@ def preview_add():
         oplog = Oplog(
             admin_id=session["admin_id"],
             ip=request.remote_addr,
-            reason="添加一部电影预告：%s" % data["title"]
+            reason="添加新电影预告：%s" % data["title"]
         )
         db.session.add(oplog)
         db.session.commit()
@@ -419,7 +419,7 @@ def preview_edit(id=None):
         oplog = Oplog(
             admin_id=session["admin_id"],
             ip=request.remote_addr,
-            reason="修改电影预告：%s（原名：%s）" % (preview.title, data["title"])
+            reason="修改电影预告：%s（原名：%s）" % (data["title"], preview.title)
         )
         db.session.add(oplog)
         db.session.commit()
@@ -641,17 +641,92 @@ def userloginlog_list(page=None):
 
 
 # 定义添加权限视图
-@admin.route("/auth/add/")
+@admin.route("/auth/add/", methods=["GET", "POST"])
 @admin_login_req
 def auth_add():
-    return render_template("admin/auth_add.html")
+    form = AuthForm()
+    if form.validate_on_submit():
+        data = form.data
+        auth = Auth(
+            name=data["name"],
+            url=data["url"]
+        )
+        db.session.add(auth)
+        db.session.commit()
+        flash("添加权限成功！", "ok")
+        oplog = Oplog(
+            admin_id=session["admin_id"],
+            ip=request.remote_addr,
+            reason="添加新权限：%s" % data["name"]
+        )
+        db.session.add(oplog)
+        db.session.commit()
+        return redirect(url_for("admin.auth_add"))
+    return render_template("admin/auth_add.html", form=form)
+
+
+# 定义编辑权限视图
+@admin.route("/auth/edit/<int:id>/", methods=["GET", "POST"])
+@admin_login_req
+def auth_edit(id=None):
+    form = AuthForm()
+    auth = Auth.query.get_or_404(id)
+    page = page_data.page if page_data is not None else 1
+    if request.method == "GET":
+        form.name.data = auth.name
+        form.url.data = auth.url
+    if form.validate_on_submit():
+        data = form.data
+        oplog = Oplog(
+            admin_id=session["admin_id"],
+            ip=request.remote_addr,
+            reason="修改权限：%s（原名：%s）" % (data["name"], auth.name)
+        )
+        db.session.add(oplog)
+        db.session.commit()
+
+        auth.name = data["name"]
+        auth.url = data["url"]
+        db.session.add(auth)
+        db.session.commit()
+        flash("修改权限成功！", "ok")
+        return redirect(url_for("admin.auth_list", page=page))
+    return render_template("admin/auth_edit.html", form=form, auth=auth, page=page)
 
 
 # 定义权限列表视图
-@admin.route("/auth/list/")
+@admin.route("/auth/list/<int:page>/", methods=["GET"])
 @admin_login_req
-def auth_list():
-    return render_template("admin/auth_list.html")
+def auth_list(page=None):
+    global page_data
+    if page is None:
+        page = 1
+    page_data = Auth.query.order_by(
+        Auth.addtime.desc()
+    ).paginate(page=page, per_page=app.config['PAGE_SET'])
+    return render_template("admin/auth_list.html", page_data=page_data)
+
+
+# 定义权限删除视图
+@admin.route("/auth/del/<int:id>/", methods=["GET"])
+@admin_login_req
+def auth_del(id=None):
+    if page_data.pages == 1 or page_data is None:
+        page = 1
+    else:
+        page = page_data.page if page_data.page < page_data.pages or page_data.total % page_data.per_page != 1 else page_data.pages - 1
+    auth = Auth.query.filter_by(id=id).first_or_404()
+    db.session.delete(auth)
+    db.session.commit()
+    flash("删除权限成功！", "ok")
+    oplog = Oplog(
+        admin_id=session["admin_id"],
+        ip=request.remote_addr,
+        reason="删除权限：%s" % auth.name
+    )
+    db.session.add(oplog)
+    db.session.commit()
+    return redirect(url_for("admin.auth_list", page=page))
 
 
 # 定义添加角色视图

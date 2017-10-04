@@ -8,7 +8,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, FileField, TextAreaField, SelectField
 from wtforms.validators import DataRequired, ValidationError
-from app.models import Admin, Tag
+from app.models import Admin, Tag, Auth
 
 tags = Tag.query.all()  # 查询所有标签
 
@@ -263,3 +263,47 @@ class PwdForm(FlaskForm):
         admin = Admin.query.filter_by(name=name).first()
         if not admin.check_pwd(old_pwd):
             raise ValidationError("旧密码错误！")
+
+
+class AuthForm(FlaskForm):
+    """权限表单"""
+    name = StringField(
+        label="权限名称",
+        validators=[
+            DataRequired("请输入权限名称！")
+        ],
+        description="权限名称",
+        render_kw={
+            "class": "form-control",
+            "id": "input_name",
+            "placeholder": "请输入权限名称！"
+        }
+    )
+    url = StringField(
+        label="权限地址",
+        validators=[
+            DataRequired("请输入权限地址！")
+        ],
+        description="权限地址",
+        render_kw={
+            "class": "form-control",
+            "id": "input_url",
+            "placeholder": "请输入权限地址！"
+        }
+    )
+    submit = SubmitField(
+        '提交',
+        render_kw={
+            "class": "btn btn-primary"
+        }
+    )
+
+    def validate_name(self, field):
+        auth = Auth.query.filter_by(name=field.data).count()
+        if auth == 1:
+            raise ValidationError("名称已经存在！")
+
+    def validate_url(self, field):
+        auth = Auth.query.filter_by(url=field.data).count()
+        if auth == 1:
+            raise ValidationError("地址已经存在！")
