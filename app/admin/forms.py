@@ -7,7 +7,7 @@
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, FileField, TextAreaField, SelectField, SelectMultipleField
-from wtforms.validators import DataRequired, ValidationError
+from wtforms.validators import DataRequired, ValidationError, EqualTo
 from app.models import Admin, Tag, Auth, Role
 
 
@@ -345,3 +345,65 @@ class RoleForm(FlaskForm):
             from app.admin.views import edit_role_name
             if edit_role_name != field.data:
                 raise ValidationError("名称已经存在！")
+
+
+class AdminForm(FlaskForm):
+    """管理员表单"""
+    name = StringField(
+        label="管理员名称",
+        validators=[
+            DataRequired("请输入管理员名称！")
+        ],
+        description="管理员名称",
+        render_kw={  # 附加选项
+            "class": "form-control",
+            "placeholder": "请输入账号！"
+        }
+    )
+    pwd = PasswordField(
+        label="管理员密码",
+        validators=[
+            DataRequired("请输入管理员密码！")
+        ],
+        description="管理员密码",
+        render_kw={
+            "class": "form-control",
+            "placeholder": "请输入管理员密码！"
+        }
+    )
+    re_pwd = PasswordField(
+        label="管理员重复密码",
+        validators=[
+            DataRequired("请再次输入管理员密码！"),
+            EqualTo('pwd', message="两次密码输入不一致！")
+        ],
+        description="管理员重复密码",
+        render_kw={
+            "class": "form-control",
+            "placeholder": "请再次输入管理员密码！"
+        }
+    )
+    role_id = SelectField(
+        label="所属角色",
+        validators=[
+            DataRequired("请选择所属角色！")
+        ],
+        coerce=int,
+        choices=[(0, "未选择")] + [(v.id, v.name) for v in Role.query.all()],
+        description="所属角色",
+        render_kw={
+            "class": "form-control",
+            "id": "input_role_id"
+        }
+    )
+    submit = SubmitField(
+        '提交',
+        render_kw={
+            "class": "btn btn-primary"
+        }
+    )
+
+    def validate_name(self, field):
+        auth = Admin.query.filter_by(name=field.data).count()
+        if auth == 1:
+            raise ValidationError("管理员名称已经存在！")

@@ -9,7 +9,7 @@
 from app import db, app
 from app.admin import admin
 from flask import render_template, redirect, url_for, flash, session, request
-from app.admin.forms import LoginForm, TagForm, MovieForm, PreviewForm, PwdForm, AuthForm, RoleForm
+from app.admin.forms import LoginForm, TagForm, MovieForm, PreviewForm, PwdForm, AuthForm, RoleForm, AdminForm
 from app.models import Admin, Tag, Movie, Preview, User, Comment, Moviecol, Oplog, Adminlog, Userlog, Auth, Role
 from functools import wraps
 from werkzeug.utils import secure_filename
@@ -822,14 +822,43 @@ def role_del(id=None):
 
 
 # 定义添加管理员视图
-@admin.route("/admin/add/")
+@admin.route("/admin/add/", methods=["GET", "POST"])
 @admin_login_req
 def admin_add():
-    return render_template("admin/admin_add.html")
+    form = AdminForm()
+    if form.validate_on_submit():
+        data = form.data
+        from werkzeug.security import generate_password_hash
+        admin = Admin(
+            name=data["name"],
+            pwd=generate_password_hash(data["pwd"]),
+            role_id=data["role_id"],
+            is_super=1
+        )
+        db.session.add(admin)
+        db.session.commit()
+        flash("添加管理员成功！", "ok")
+        oplog = Oplog(
+            admin_id=session["admin_id"],
+            ip=request.remote_addr,
+            reason="添加新管理员：%s" % data["name"]
+        )
+        db.session.add(oplog)
+        db.session.commit()
+        return redirect(url_for("admin.admin_add"))
+    return render_template("admin/admin_add.html", form=form)
 
 
 # 定义管理员列表视图
-@admin.route("/admin/list/")
+@admin.route("/admin/list/<int:page>/", methods=["GET", "POST"])
 @admin_login_req
-def admin_list():
-    return render_template("admin/admin_list.html")
+def admin_list(page=None):
+    global page_data
+    if page is None:
+        page = 1
+    page_data = Admin.query.join(Role).filter(
+        Admin.role_id == Role.id
+    ).order_by(
+        Admin.addtime.desc()
+    ).paginate(page=page, per_page=app.config['PAGE_SET'])
+    return render_template("admin/admin_list.html", page_data=page_data)
