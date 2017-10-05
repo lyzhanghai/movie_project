@@ -8,7 +8,7 @@
 
 from app import db, app
 from app.admin import admin
-from flask import render_template, redirect, url_for, flash, session, request
+from flask import render_template, redirect, url_for, flash, session, request, abort
 from app.admin.forms import LoginForm, TagForm, MovieForm, PreviewForm, PwdForm, AuthForm, RoleForm, AdminForm
 from app.models import Admin, Tag, Movie, Preview, User, Comment, Moviecol, Oplog, Adminlog, Userlog, Auth, Role
 from functools import wraps
@@ -42,6 +42,27 @@ def admin_login_req(f):
     return decorated_function
 
 
+# 定义权限控制装饰器
+def admin_auth(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 查询出权限ID，然后查出对应的路由地址
+        admin = Admin.query.join(Role).filter(
+            Admin.role_id == Role.id,
+            Admin.id == session["admin_id"]
+        ).first()
+        auths = list(map(lambda v: int(v), admin.role.auths.split(",")))
+        auth_list = Auth.query.all()
+        urls = [v.url for v in auth_list for var in auths if var == v.id]
+
+        # 判断是否有权限访问
+        if app.config['AUTH_SWITCH'] and str(request.url_rule) is not urls:
+            abort(404)
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 # 修改文件名称
 def change_filename(filename):
     fileinfo = os.path.splitext(filename)  # 对名字进行前后缀分离
@@ -53,6 +74,7 @@ def change_filename(filename):
 # 定义控制面板视图
 @admin.route("/")
 @admin_login_req
+@admin_auth
 def index():
     return render_template("admin/index.html")
 
@@ -117,6 +139,7 @@ def pwd():
 # 定义添加标签视图
 @admin.route("/tag/add/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def tag_add():
     form = TagForm()
     if form.validate_on_submit():
@@ -145,6 +168,7 @@ def tag_add():
 # 定义编辑标签视图
 @admin.route("/tag/edit/<int:id>/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def tag_edit(id=None):
     form = TagForm()
     tag = Tag.query.get_or_404(id)
@@ -174,6 +198,7 @@ def tag_edit(id=None):
 # 定义标签列表视图
 @admin.route("/tag/list/<int:page>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def tag_list(page=None):
     global page_data
     if page is None:
@@ -187,6 +212,7 @@ def tag_list(page=None):
 # 定义标签删除视图
 @admin.route("/tag/del/<int:id>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def tag_del(id=None):
     if page_data.pages == 1 or page_data is None:
         page = 1
@@ -209,6 +235,7 @@ def tag_del(id=None):
 # 定义添加电影视图
 @admin.route("/movie/add/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def movie_add():
     form = MovieForm()
     if form.validate_on_submit():
@@ -252,9 +279,10 @@ def movie_add():
     return render_template("admin/movie_add.html", form=form)
 
 
-# 定义编辑标签视图
+# 定义编辑电影视图
 @admin.route("/movie/edit/<int:id>/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def movie_edit(id=None):
     form = MovieForm()
     form.url.validators = []  # 因为可以不做更改，所以不需要校验
@@ -317,6 +345,7 @@ def movie_edit(id=None):
 # 定义电影列表视图
 @admin.route("/movie/list/<int:page>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def movie_list(page=None):
     global page_data
     if page is None:
@@ -332,6 +361,7 @@ def movie_list(page=None):
 # 定义电影删除视图
 @admin.route("/movie/del/<int:id>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def movie_del(id=None):
     if page_data.pages == 1 or page_data is None:
         page = 1
@@ -358,6 +388,7 @@ def movie_del(id=None):
 # 定义添加预告视图
 @admin.route("/preview/add/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def preview_add():
     form = PreviewForm()
     if form.validate_on_submit():
@@ -393,6 +424,7 @@ def preview_add():
 # 定义编辑预告视图
 @admin.route("/preview/edit/<int:id>/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def preview_edit(id=None):
     form = PreviewForm()
     form.logo.validators = []
@@ -436,6 +468,7 @@ def preview_edit(id=None):
 # 定义预告列表视图
 @admin.route("/preview/list/<int:page>/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def preview_list(page=None):
     global page_data
     if page is None:
@@ -449,6 +482,7 @@ def preview_list(page=None):
 # 定义预告删除视图
 @admin.route("/preview/del/<int:id>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def preview_del(id=None):
     if page_data.pages == 1 or page_data is None:
         page = 1
@@ -473,6 +507,7 @@ def preview_del(id=None):
 # 定义会员列表视图
 @admin.route("/user/list/<int:page>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def user_list(page=None):
     global page_data
     if page is None:
@@ -486,6 +521,7 @@ def user_list(page=None):
 # 定义查看会员视图
 @admin.route("/user/view/<int:id>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def user_view(id=None):
     user = User.query.get_or_404(id)
     page = page_data.page if page_data is not None else 1
@@ -495,6 +531,7 @@ def user_view(id=None):
 # 定义会员删除视图
 @admin.route("/user/del/<int:id>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def user_del(id=None):
     if page_data.pages == 1 or page_data is None:
         page = 1
@@ -519,6 +556,7 @@ def user_del(id=None):
 # 定义评论列表视图
 @admin.route("/comment/list/<int:page>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def comment_list(page=None):
     global page_data
     if page is None:
@@ -535,6 +573,7 @@ def comment_list(page=None):
 # 定义评论删除视图
 @admin.route("/comment/del/<int:id>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def comment_del(id=None):
     if page_data.pages == 1 or page_data is None:
         page = 1
@@ -559,6 +598,7 @@ def comment_del(id=None):
 # 定义收藏列表视图
 @admin.route("/moviecol/list/<int:page>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def moviecol_list(page=None):
     global page_data
     if page is None:
@@ -575,6 +615,7 @@ def moviecol_list(page=None):
 # 定义收藏删除视图
 @admin.route("/moviecol/del/<int:id>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def moviecol_del(id=None):
     if page_data.pages == 1 or page_data is None:
         page = 1
@@ -599,6 +640,7 @@ def moviecol_del(id=None):
 # 定义操作日志列表视图
 @admin.route("/oplog/list/<int:page>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def oplog_list(page=None):
     global page_data
     if page is None:
@@ -614,6 +656,7 @@ def oplog_list(page=None):
 # 定义管理员登录日志列表视图
 @admin.route("/adminloginlog/list/<int:page>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def adminloginlog_list(page=None):
     global page_data
     if page is None:
@@ -629,6 +672,7 @@ def adminloginlog_list(page=None):
 # 定义会员登录日志列表视图
 @admin.route("/userloginlog/list/<int:page>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def userloginlog_list(page=None):
     global page_data
     if page is None:
@@ -644,6 +688,7 @@ def userloginlog_list(page=None):
 # 定义添加权限视图
 @admin.route("/auth/add/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def auth_add():
     form = AuthForm()
     if form.validate_on_submit():
@@ -669,6 +714,7 @@ def auth_add():
 # 定义编辑权限视图
 @admin.route("/auth/edit/<int:id>/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def auth_edit(id=None):
     form = AuthForm()
     auth = Auth.query.get_or_404(id)
@@ -698,6 +744,7 @@ def auth_edit(id=None):
 # 定义权限列表视图
 @admin.route("/auth/list/<int:page>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def auth_list(page=None):
     global page_data
     if page is None:
@@ -711,6 +758,7 @@ def auth_list(page=None):
 # 定义权限删除视图
 @admin.route("/auth/del/<int:id>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def auth_del(id=None):
     if page_data.pages == 1 or page_data is None:
         page = 1
@@ -733,6 +781,7 @@ def auth_del(id=None):
 # 定义添加角色视图
 @admin.route("/role/add/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def role_add():
     form = RoleForm()
     if form.validate_on_submit():
@@ -758,6 +807,7 @@ def role_add():
 # 定义编辑角色视图
 @admin.route("/role/edit/<int:id>/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def role_edit(id=None):
     global edit_role_name
     form = RoleForm()
@@ -789,6 +839,7 @@ def role_edit(id=None):
 # 定义角色列表视图
 @admin.route("/role/list/<int:page>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def role_list(page=None):
     global page_data
     if page is None:
@@ -802,6 +853,7 @@ def role_list(page=None):
 # 定义角色删除视图
 @admin.route("/role/del/<int:id>/", methods=["GET"])
 @admin_login_req
+@admin_auth
 def role_del(id=None):
     if page_data.pages == 1 or page_data is None:
         page = 1
@@ -824,6 +876,7 @@ def role_del(id=None):
 # 定义添加管理员视图
 @admin.route("/admin/add/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def admin_add():
     form = AdminForm()
     if form.validate_on_submit():
@@ -852,6 +905,7 @@ def admin_add():
 # 定义管理员列表视图
 @admin.route("/admin/list/<int:page>/", methods=["GET", "POST"])
 @admin_login_req
+@admin_auth
 def admin_list(page=None):
     global page_data
     if page is None:

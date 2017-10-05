@@ -19,6 +19,7 @@ app.config['SECRET_KEY'] = '6a8312d499ed42828bb85fefac3607b7'  # CSRF保护设�
 app.config['UP_DIR'] = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                     "static" + os.sep + "uploads" + os.sep)  # 配置文件上传目录
 app.config['PAGE_SET'] = 3  # 分页上限数量
+app.config['AUTH_SWITCH'] = False  # 页面访问权限开关，True为开启
 app.debug = True  # 调试开关
 
 db = SQLAlchemy(app)  # 创建db对象
