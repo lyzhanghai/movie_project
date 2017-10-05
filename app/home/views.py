@@ -6,8 +6,13 @@
 # @datetime: 9/26 026 下午 07:34
 
 
+from app import db
 from app.home import home
-from flask import render_template, redirect, url_for
+from app.home.forms import RegistForm
+from app.models import User
+from flask import render_template, redirect, url_for, flash
+from werkzeug.security import generate_password_hash
+import uuid
 
 
 # 调用蓝图（定义视图）
@@ -29,9 +34,23 @@ def logout():
 
 
 # 定义注册视图
-@home.route("/regist/")
+@home.route("/regist/", methods=["GET", "POST"])
 def regist():
-    return render_template("home/regist.html")
+    form = RegistForm()
+    if form.validate_on_submit():
+        data = form.data
+        user = User(
+            name=data["name"],
+            pwd=generate_password_hash(data["pwd"]),
+            email=data["email"],
+            phone=data["phone"],
+            uuid=uuid.uuid4().hex
+        )
+        db.session.add(user)
+        db.session.commit()
+        flash("注册成功，请登录！", "ok")
+        return redirect(url_for("home.login"))
+    return render_template("home/regist.html", form=form)
 
 
 # 定义会员中心视图
