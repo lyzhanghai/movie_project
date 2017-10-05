@@ -17,45 +17,45 @@
                                 {{ form.name }}
                                 {% for err in form.name.errors %}
                                 <div class="col-md-12" style="color: red">{{ err }}</div>
+                                <br/>
                                 {% endfor %}
                             </div>
-                            <br/>
                             <div class="form-group">
                                 <label for="input_email"><span
                                         class="glyphicon glyphicon-envelope"></span>&nbsp;{{ form.email.label }}</label>
                                 {{ form.email }}
                                 {% for err in form.email.errors %}
                                 <div class="col-md-12" style="color: red">{{ err }}</div>
+                                <br/>
                                 {% endfor %}
                             </div>
-                            <br/>
                             <div class="form-group">
                                 <label for="input_phone"><span class="glyphicon glyphicon-phone"></span>&nbsp;{{
                                     form.phone.label }}</label>
                                 {{ form.phone }}
                                 {% for err in form.phone.errors %}
                                 <div class="col-md-12" style="color: red">{{ err }}</div>
+                                <br/>
                                 {% endfor %}
                             </div>
-                            <br/>
                             <div class="form-group">
                                 <label for="input_password"><span
                                         class="glyphicon glyphicon-lock"></span>&nbsp;{{ form.pwd.label }}</label>
                                 {{ form.pwd }}
                                 {% for err in form.pwd.errors %}
                                 <div class="col-md-12" style="color: red">{{ err }}</div>
+                                <br/>
                                 {% endfor %}
                             </div>
-                            <br/>
                             <div class="form-group">
                                 <label for="input_repassword"><span
                                         class="glyphicon glyphicon-lock"></span>&nbsp;{{ form.re_pwd.label }}</label>
                                 {{ form.re_pwd }}
                                 {% for err in form.re_pwd.errors %}
                                 <div class="col-md-12" style="color: red">{{ err }}</div>
+                                <br/>
                                 {% endfor %}
                             </div>
-                            <br/>
                             {{ form.csrf_token }}
                             {{ form.submit }}
                         </fieldset>
