@@ -9,7 +9,7 @@
 from app import db, app
 from app.home import home
 from app.home.forms import RegistForm, LoginForm, UserdetailForm, PwdForm
-from app.models import User, Userlog
+from app.models import User, Userlog, Preview
 from flask import render_template, redirect, url_for, flash, session, request
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
@@ -42,10 +42,11 @@ def index():
     return render_template("home/index.html")
 
 
-# 定义首页动画视图
+# 定义上映预告视图（首页动画）
 @home.route("/animation/")
 def animation():
-    return render_template("home/animation.html")
+    data = Preview.query.all()
+    return render_template("home/animation.html", data=data)
 
 
 # 定义电影搜索视图
