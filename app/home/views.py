@@ -173,10 +173,15 @@ def comments():
 
 
 # 定义登录日志视图
-@home.route("/loginlog/")
+@home.route("/loginlog/", methods=["GET"])
 @user_login_req
 def loginlog():
-    return render_template("home/loginlog.html")
+    userlog = Userlog.query.filter_by(
+        user_id=session["user_id"]
+    ).order_by(
+        Userlog.addtime.desc()
+    ).limit(15).all()
+    return render_template("home/loginlog.html", userlog=userlog)
 
 
 # 定义收藏电影视图
