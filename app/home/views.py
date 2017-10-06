@@ -10,7 +10,7 @@ from app import db, app
 from app.home import home
 from app.home.forms import RegistForm, LoginForm, UserdetailForm, PwdForm
 from app.models import User, Userlog, Preview, Tag, Movie
-from flask import render_template, redirect, url_for, flash, session, request
+from flask import render_template, redirect, url_for, flash, session, request, abort
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
@@ -95,7 +95,27 @@ def animation():
 # 定义电影搜索视图
 @home.route("/search/")
 def search():
-    return render_template("home/search.html")
+    key = request.args.get("key", '')
+    pg = request.args.get("pg", '')
+
+    if key == '':
+        abort(404)
+
+    p = dict(key=key)
+
+    # 模糊匹配
+    page_data = Movie.query.filter(
+        Movie.title.ilike('%' + key + '%')
+    ).order_by(
+        Movie.playnum.desc()
+    )
+
+    pages = page_data.count() // app.config['PAGE_SET'] if page_data.count() % app.config[
+        'PAGE_SET'] == 0 else page_data.count() // app.config['PAGE_SET'] + 1
+    page = int(pg) if pg.isdigit() and pg is not None and int(pg) <= pages else 1
+    page_data = page_data.paginate(page=page, per_page=app.config['PAGE_SET'])
+
+    return render_template("home/search.html", p=p, page_data=page_data)
 
 
 # 定义电影详情视图
