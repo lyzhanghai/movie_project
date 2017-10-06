@@ -9,7 +9,7 @@
 from app import db, app
 from app.home import home
 from app.home.forms import RegistForm, LoginForm, UserdetailForm, PwdForm
-from app.models import User, Userlog, Preview
+from app.models import User, Userlog, Preview, Tag, Movie
 from flask import render_template, redirect, url_for, flash, session, request
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
@@ -39,7 +39,50 @@ def change_filename(filename):
 # 定义首页列表视图
 @home.route("/")
 def index():
-    return render_template("home/index.html")
+    tags = Tag.query.all()
+    # 通过url获取参数
+    tid = request.args.get("tid", '')
+    star = request.args.get("star", '')
+    time = request.args.get("time", '')
+    pm = request.args.get("pm", '')
+    cm = request.args.get("cm", '')
+    pg = request.args.get("pg", '')
+
+    # 保存获取的参数
+    p = dict(
+        tid=tid,
+        star=star,
+        time=time,
+        pm=pm,
+        cm=cm
+    )
+
+    # 根据获取的参数查询数据
+    page_data = Movie.query
+    if tid.isdigit() and tid is not None:
+        page_data = page_data.filter_by(tag_id=int(tid))
+    if star.isdigit() and star is not None:
+        page_data = page_data.filter_by(star=int(star))
+    if time.isdigit() and time is not None:
+        page_data = page_data.order_by(
+            Movie.addtime.desc() if int(time) == 1 else Movie.addtime.asc()
+        )
+    if pm.isdigit() and pm is not None:
+        page_data = page_data.order_by(
+            Movie.playnum.desc() if int(pm) == 1 else Movie.playnum.asc()
+        )
+    if cm.isdigit() and cm is not None:
+        page_data = page_data.order_by(
+            Movie.commentnum.desc() if int(cm) == 1 else Movie.commentnum.asc()
+        )
+
+    # 分页处理
+    pages = page_data.count() // app.config['PAGE_SET'] if page_data.count() % app.config[
+        'PAGE_SET'] == 0 else page_data.count() // app.config['PAGE_SET'] + 1
+    page = int(pg) if pg.isdigit() and pg is not None and int(pg) <= pages else 1
+    page_data = page_data.paginate(page=page, per_page=app.config['PAGE_SET'])
+
+    return render_template("home/index.html", tags=tags, p=p, page_data=page_data)
 
 
 # 定义上映预告视图（首页动画）
