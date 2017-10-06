@@ -6,14 +6,15 @@
 # @datetime: 9/26 026 下午 07:34
 
 
-from app import db
+from app import db, app
 from app.home import home
-from app.home.forms import RegistForm, LoginForm
+from app.home.forms import RegistForm, LoginForm, UserdetailForm, PwdForm
 from app.models import User, Userlog
 from flask import render_template, redirect, url_for, flash, session, request
 from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
 from functools import wraps
-import uuid
+import uuid, os, datetime
 
 
 # 定义登录判断装饰器
@@ -26,6 +27,13 @@ def user_login_req(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
+
+# 修改文件名称
+def change_filename(filename):
+    fileinfo = os.path.splitext(filename)  # 对名字进行前后缀分离
+    filename = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + "_" + uuid.uuid4().hex + fileinfo[-1]  # 生成新文件名
+    return filename
 
 
 # 定义首页列表视图
@@ -104,17 +112,57 @@ def logout():
 
 
 # 定义会员中心视图
-@home.route("/user/")
+@home.route("/user/", methods=["GET", "POST"])
 @user_login_req
 def user():
-    return render_template("home/user.html")
+    form = UserdetailForm()
+    user = User.query.get(int(session["user_id"]))
+    if user.face is not None:
+        form.face.validators = []
+    if request.method == "GET":
+        form.name.data = user.name
+        form.email.data = user.email
+        form.phone.data = user.phone
+        form.info.data = user.info
+    if form.validate_on_submit():
+        data = form.data
+
+        if not os.path.exists(app.config['UP_DIR'] + "users" + os.sep):
+            os.makedirs(app.config['UP_DIR'] + "users" + os.sep)
+            os.chmod(app.config['UP_DIR'] + "users" + os.sep, "rw")
+
+        if form.face.data.filename != '':
+            old_face = user.face
+            file_face = secure_filename(form.face.data.filename)
+            user.face = change_filename(file_face)
+            form.face.data.save(app.config['UP_DIR'] + "users" + os.sep + user.face)
+            if old_face is not None and os.path.exists(app.config['UP_DIR'] + "users" + os.sep + old_face):
+                os.remove(app.config['UP_DIR'] + "users" + os.sep + old_face)
+
+        user.name = data["name"]
+        user.email = data["email"]
+        user.phone = data["phone"]
+        user.info = data["info"]
+        db.session.add(user)
+        db.session.commit()
+        flash("修改成功！", "ok")
+    return render_template("home/user.html", form=form, user=user)
 
 
 # 定义修改密码视图
-@home.route("/pwd/")
+@home.route("/pwd/", methods=["GET", "POST"])
 @user_login_req
 def pwd():
-    return render_template("home/pwd.html")
+    form = PwdForm()
+    if form.validate_on_submit():
+        data = form.data
+        user = User.query.filter_by(name=session["user"]).first()
+        user.pwd = generate_password_hash(data["new_pwd"])
+        db.session.add(user)
+        db.session.commit()
+        flash("修改密码成功，请重新登录！", "ok")
+        return redirect(url_for("home.logout"))
+    return render_template("home/pwd.html", form=form)
 
 
 # 定义评论记录视图
