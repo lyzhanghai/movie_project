@@ -8,8 +8,8 @@
 
 from app import db, app
 from app.home import home
-from app.home.forms import RegistForm, LoginForm, UserdetailForm, PwdForm
-from app.models import User, Userlog, Preview, Tag, Movie
+from app.home.forms import RegistForm, LoginForm, UserdetailForm, PwdForm, CommentForm
+from app.models import User, Userlog, Preview, Tag, Movie, Comment, Moviecol
 from flask import render_template, redirect, url_for, flash, session, request, abort
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
@@ -119,9 +119,56 @@ def search():
 
 
 # 定义电影详情视图
-@home.route("/play/")
+@home.route("/play/", methods=["GET", "POST"])
 def play():
-    return render_template("home/play.html")
+    form = CommentForm()
+    mv = request.args.get("mv", '')
+    pg = request.args.get("pg", '')
+
+    p = dict(mv=mv)
+
+    if not mv.isdigit() or mv is None:
+        abort(404)
+
+    movie = Movie.query.get_or_404(int(mv))
+    # 提交评论
+    if form.validate_on_submit():
+        comment = Comment(
+            content=form.data["content"],
+            movie_id=int(mv),
+            user_id=session["user_id"]
+        )
+        movie.commentnum += 1  # 增加评论数量
+        db.session.add(comment)
+        db.session.add(movie)
+        db.session.commit()
+        flash("评论提交成功！", "ok")
+
+    # 增加播放数量
+    movie.playnum += 1
+    db.session.add(movie)
+    db.session.commit()
+
+    # 查询电影信息用于网页显示
+    movie = Movie.query.join(Tag).filter(
+        Movie.id == int(mv),
+        Movie.tag_id == Tag.id
+    ).first_or_404()
+
+    # 查询评论数据
+    page_data = Comment.query.join(User).filter(
+        Comment.movie_id == int(mv),
+        Comment.user_id == User.id
+    ).order_by(
+        Comment.addtime.desc()
+    )
+    # 分页显示
+    pages = page_data.count() // app.config['PAGE_SET'] if page_data.count() % app.config[
+        'PAGE_SET'] == 0 else page_data.count() // app.config['PAGE_SET'] + 1
+    page = int(pg) if pg.isdigit() and pg is not None and int(pg) <= pages else 1
+    page_data = page_data.paginate(page=page, per_page=app.config['PAGE_SET'])
+
+    return render_template("home/play.html", p=p, form=form, movie=movie, page_data=page_data)
 
 
 # 定义注册视图
@@ -233,7 +280,22 @@ def pwd():
 @home.route("/comments/")
 @user_login_req
 def comments():
-    return render_template("home/comments.html")
+    pg = request.args.get("pg", '')
+
+    # 查询评论数据
+    page_data = Comment.query.join(User).join(Movie).filter(
+        Comment.user_id == session["user_id"],
+        Comment.user_id == User.id,
+        Comment.movie_id == Movie.id
+    ).order_by(
+        Comment.addtime.desc()
+    )
+    # 分页显示
+    pages = page_data.count() // app.config['PAGE_SET'] if page_data.count() % app.config[
+        'PAGE_SET'] == 0 else page_data.count() // app.config['PAGE_SET'] + 1
+    page = int(pg) if pg.isdigit() and pg is not None and int(pg) <= pages else 1
+    page_data = page_data.paginate(page=page, per_page=app.config['PAGE_SET'])
+    return render_template("home/comments.html", page_data=page_data)
 
 
 # 定义登录日志视图
@@ -248,8 +310,66 @@ def loginlog():
     return render_template("home/loginlog.html", userlog=userlog)
 
 
+# 定义添加收藏视图
+@home.route("/moviecol/add/", methods=["GET"])
+@user_login_req
+def moviecol_add():
+    uid = request.args.get("uid", '')
+    mid = request.args.get("mid", '')
+    if not uid.isdigit() or uid is None or not mid.isdigit() or mid is None:
+        abort(404)
+    moviecol = Moviecol.query.filter_by(
+        user_id=int(uid),
+        movie_id=int(mid)
+    ).count()
+    if moviecol == 1:
+        data = dict(ok=0)
+    elif moviecol == 0:
+        moviecol = Moviecol(
+            user_id=int(uid),
+            movie_id=int(mid)
+        )
+        db.session.add(moviecol)
+        db.session.commit()
+        data = dict(ok=1)
+
+    import json
+    return json.dumps(data)
+
+
+# 定义取消收藏视图
+@home.route("/moviecol/del")
+@user_login_req
+def moviecol_del():
+    mv = request.args.get("mv", '')
+    if not mv.isdigit() or mv is None:
+        abort(404)
+    moviecol = Moviecol.query.filter_by(
+        movie_id=int(mv),
+        user_id=session["user_id"]
+    ).first_or_404()
+    db.session.delete(moviecol)
+    db.session.commit()
+    flash("删除收藏成功！", "ok")
+    return redirect(url_for("home.moviecol"))
+
+
 # 定义收藏电影视图
 @home.route("/moviecol/")
 @user_login_req
 def moviecol():
-    return render_template("home/moviecol.html")
+    pg = request.args.get("pg", '')
+
+    # 查询评论数据
+    page_data = Moviecol.query.join(Movie).filter(
+        Moviecol.user_id == session["user_id"],
+        Moviecol.movie_id == Movie.id
+    ).order_by(
+        Moviecol.addtime.desc()
+    )
+    # 分页显示
+    pages = page_data.count() // app.config['PAGE_SET'] if page_data.count() % app.config[
+        'PAGE_SET'] == 0 else page_data.count() // app.config['PAGE_SET'] + 1
+    page = int(pg) if pg.isdigit() and pg is not None and int(pg) <= pages else 1
+    page_data = page_data.paginate(page=page, per_page=app.config['PAGE_SET'])
+    return render_template("home/moviecol.html", page_data=page_data)

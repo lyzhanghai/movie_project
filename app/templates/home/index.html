@@ -82,8 +82,11 @@
                 <div class="movielist text-center">
                     <!--<img data-original="holder.js/262x166"
                              class="img-responsive lazy center-block" alt="">-->
-                    <img src="{{ url_for('static', filename='uploads/'+v.logo) }}" class="img-responsive center-block"
-                         alt="">
+                    <a href="{{ url_for('home.play') }}?mv={{ v.id }}">
+                        <img src="{{ url_for('static', filename='uploads/'+v.logo) }}"
+                             class="img-responsive center-block"
+                             alt="">
+                    </a>
                     <div class="text-left" style="margin-left:auto;margin-right:auto;width:210px;">
                         <span style="color:#999;font-style: italic;">{{ v.title }}</span><br>
                         <div>
@@ -95,7 +98,7 @@
                             {% endfor %}
                         </div>
                     </div>
-                    <a href="{{ url_for('home.play') }}" class="btn btn-primary" target="_blank" role="button"><span
+                    <a href="{{ url_for('home.play') }}?mv={{ v.id }}" class="btn btn-primary" role="button"><span
                             class="glyphicon glyphicon-play"></span>&nbsp;播放</a>
                 </div>
             </div>
@@ -103,7 +106,7 @@
             <div class="col-md-12">
                 <nav aria-label="Page navigation">
                     {{ pg.page(page_data,
-                    url_for('home.index')+'?tid='+p['tid']+'&star='+p['star']+'&time='+p['time']+'&pm='+p['pm']+'&cm='+p['cm'])
+                    url_for('home.index')+'?tid='+p['tid']+'&star='+p['star']+'&time='+p['time']+'&pm='+p['pm']+'&cm='+p['cm']+'&')
                     }}
                 </nav>
             </div>

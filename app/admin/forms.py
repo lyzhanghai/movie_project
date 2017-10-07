@@ -63,6 +63,7 @@ class TagForm(FlaskForm):
         render_kw={
             "class": "form-control",
             "id": "input_name",
+            "autofocus": "",
             "placeholder": "请输入标签名称！"
         }
     )
@@ -85,6 +86,7 @@ class MovieForm(FlaskForm):
         render_kw={
             "class": "form-control",
             "id": "input_title",
+            "autofocus": "",
             "placeholder": "请输入片名！"
         }
     )
@@ -201,6 +203,7 @@ class PreviewForm(FlaskForm):
         render_kw={
             "class": "form-control",
             "id": "input_title",
+            "autofocus": "",
             "placeholder": "请输入预告标题！"
         }
     )
@@ -232,6 +235,7 @@ class PwdForm(FlaskForm):
         description="旧密码",
         render_kw={
             "class": "form-control",
+            "autofocus": "",
             "placeholder": "请输入旧密码！"
         }
     )
@@ -274,6 +278,7 @@ class AuthForm(FlaskForm):
         render_kw={
             "class": "form-control",
             "id": "input_name",
+            "autofocus": "",
             "placeholder": "请输入权限名称！"
         }
     )
@@ -318,6 +323,7 @@ class RoleForm(FlaskForm):
         render_kw={
             "class": "form-control",
             "id": "input_name",
+            "autofocus": "",
             "placeholder": "请输入角色名称！"
         }
     )
@@ -357,6 +363,7 @@ class AdminForm(FlaskForm):
         description="管理员名称",
         render_kw={  # 附加选项
             "class": "form-control",
+            "autofocus": "",
             "placeholder": "请输入账号！"
         }
     )

@@ -15,7 +15,6 @@ from functools import wraps
 from werkzeug.utils import secure_filename
 import os, uuid, datetime
 
-login_time = None  # 用于存储登录时间
 page_data = None  # 存储分页数据以便返回使用
 edit_role_name = None  # 存储编辑角色页的旧角色名称
 
@@ -23,9 +22,17 @@ edit_role_name = None  # 存储编辑角色页的旧角色名称
 # 上下文处理器（将变量直接提供给模板使用）
 @admin.context_processor
 def tpl_extra():
-    global login_time
+    if "admin_id" in session and Adminlog.query.filter_by(admin_id=session["admin_id"]).count() > 0:
+        adminlog = Adminlog.query.filter_by(admin_id=session["admin_id"]).order_by(
+            Adminlog.addtime.desc()
+        ).first()
+        login_time = adminlog.addtime
+    else:
+        # 登陆前是看不到页面的，所以给空值
+        login_time = None
+
     data = dict(
-        login_time=login_time  # 用于存储登录时间
+        login_time=login_time
     )
     return data
 
@@ -34,8 +41,8 @@ def tpl_extra():
 def admin_login_req(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # 服务器重启或session不存在时请求登录
-        if login_time == None or "admin" not in session:
+        # session不存在时请求登录
+        if "admin" not in session:
             return redirect(url_for("admin.login", next=request.url))
         return f(*args, **kwargs)
 
@@ -82,7 +89,6 @@ def index():
 # 定义登录视图
 @admin.route("/login/", methods=["GET", "POST"])
 def login():
-    global login_time
     form = LoginForm()  # 导入登录表单
     if form.validate_on_submit():  # 验证是否有提交表单
         data = form.data
@@ -98,7 +104,6 @@ def login():
         )
         db.session.add(adminlog)
         db.session.commit()
-        login_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 生成登录时间
         return redirect(request.args.get("next") or url_for("admin.index"))
     return render_template("admin/login.html", form=form)
 

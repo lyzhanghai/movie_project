@@ -11,7 +11,7 @@
 
     {% for v in data.iter_pages() %}
     {% if v == data.page %}
-    <li class="active"><a href="#">{{ v }}</a></li>
+    <li class="active"><a>{{ v }}</a></li>
     {% elif v == None %}
     <li><a>···</a></li>
     {% else %}
