@@ -47,7 +47,7 @@
                                 class="label label-primary pull-right"><span
                                 class="glyphicon glyphicon-play"></span>播放影片</a></h4>
                         <h4 class="media-heading"><a
-                                id="cancel_col" href1="{{ v.movie_id }}"
+                                id="cancel_col" mid="{{ v.movie_id }}"
                                 class="label label-primary pull-right" style="background-color: #d9534f;"><span
                                 class="glyphicon glyphicon-heart"></span>取消收藏</a></h4>
                         {{ v.movie.info }}
@@ -73,7 +73,7 @@
 
         $("#cancel_col").click(function () {
             if (confirm("确定要取消收藏?")) {
-                var mid = $(this).attr("href1")
+                var mid = $(this).attr("mid")
                 location.href = "{{ url_for('home.moviecol_del') }}?mv=" + mid;
             }
         });
