@@ -53,18 +53,19 @@ def admin_login_req(f):
 def admin_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # 查询出权限ID，然后查出对应的路由地址
-        admin = Admin.query.join(Role).filter(
-            Admin.role_id == Role.id,
-            Admin.id == session["admin_id"]
-        ).first()
-        auths = list(map(lambda v: int(v), admin.role.auths.split(",")))
-        auth_list = Auth.query.all()
-        urls = [v.url for v in auth_list for var in auths if var == v.id]
+        if "admin_id" in session:
+            # 查询出权限ID，然后查出对应的路由地址
+            admin = Admin.query.join(Role).filter(
+                Admin.role_id == Role.id,
+                Admin.id == session["admin_id"]
+            ).first()
+            auths = list(map(lambda v: int(v), admin.role.auths.split(",")))
+            auth_list = Auth.query.all()
+            urls = [v.url for v in auth_list for var in auths if var == v.id]
 
-        # 判断是否有权限访问
-        if app.config['AUTH_SWITCH'] and str(request.url_rule) is not urls:
-            abort(404)
+            # 判断是否有权限访问
+            if app.config['AUTH_SWITCH'] and str(request.url_rule) is not urls:
+                abort(404)
         return f(*args, **kwargs)
 
     return decorated_function
