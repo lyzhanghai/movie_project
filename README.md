@@ -2,7 +2,7 @@
 
 ## 简介
 
-> 这是一个使用Python语言和Flask框架搭建的微电影网站。网站分前台和后台，前台面向用户，主要功能有注册会员、搜索电影、观看电影、收藏及评论电影；后台面向网站管理人员，主要有标签、电影、预告等针对前台功能的管理以及后台管理员和权限的管理。下方是一个索引目录，可以快速定位到你想看的地方。赶快试试吧~
+> 这是一个使用Python语言和Flask框架搭建的微电影网站。网站分前台和后台，前台面向用户，主要功能有注册会员、搜索电影、观看电影、收藏及评论电影；后台面向网站管理人员，主要有标签、电影、预告等针对前台功能的管理以及后台管理员和权限的管理。下方是一个索引目录，可以快速定位到你想看的地方。赶快试试吧~（Github竟然不支持，以后再试吧！）
 
 [TOC]
 
@@ -174,8 +174,8 @@ cd /usr/local/nginx/html/movie_project/
 nohup python manage.py runserver -h 127.0.0.1 -p 5001 &
 ```
 ![Movie_deploy03](https://github.com/caozhiqiango/movie_project/raw/master/picture/Movie_deploy03.PNG)
-![Movie_deploy04](https://github.com/caozhiqiango/movie_project/raw/master/picture/Movie_deploy04.PNG)
-![Movie_deploy05](https://github.com/caozhiqiango/movie_project/raw/master/picture/Movie_deploy05.PNG)
+![Movie_deploy04](https://github.com/caozhiqiango/movie_project/raw/master/picture/Movie_deploy04.png)
+![Movie_deploy05](https://github.com/caozhiqiango/movie_project/raw/master/picture/Movie_deploy05.png)
 
 ## 参考致谢
 
