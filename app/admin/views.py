@@ -885,6 +885,9 @@ def role_del(id=None):
 @admin_auth
 def admin_add():
     form = AdminForm()
+    #需要实时查询角色信息.zhanghai.
+    form.role_id.choices = [(0, "未选择")] + [(v.id, v.name) for v in Role.query.all()]
+
     if form.validate_on_submit():
         data = form.data
         from werkzeug.security import generate_password_hash
@@ -905,7 +908,8 @@ def admin_add():
         db.session.add(oplog)
         db.session.commit()
         return redirect(url_for("admin.admin_add"))
-    return render_template("admin/admin_add.html", form=form)
+    # role_list = Role.query.order_by(Role.addtime.desc()).all()
+    return render_template("admin/admin_add.html", form=form, role_list=role_list)
 
 
 # 定义管理员列表视图

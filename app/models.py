@@ -159,7 +159,11 @@ class Admin(db.Model):
         return "<Admin %r>" % self.name
 
     def check_pwd(self, pwd):
-        from werkzeug.security import check_password_hash
+        from werkzeug.security import check_password_hash,generate_password_hash
+
+        print(self.pwd)
+        g_password_hash = generate_password_hash("123456")
+        print(g_password_hash)
         return check_password_hash(self.pwd, pwd)  # 验证密码是否正确，返回True和False
 
 
