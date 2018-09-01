@@ -64,7 +64,8 @@ def admin_auth(f):
             urls = [v.url for v in auth_list for var in auths if var == v.id]
 
             # 判断是否有权限访问
-            if app.config['AUTH_SWITCH'] and str(request.url_rule) is not urls:
+            # if app.config['AUTH_SWITCH'] and str(request.url_rule) is not urls:
+            if app.config['AUTH_SWITCH'] and str(request.url_rule) not in urls:
                 abort(404)
         return f(*args, **kwargs)
 
@@ -82,7 +83,7 @@ def change_filename(filename):
 # 定义控制面板视图
 @admin.route("/")
 @admin_login_req
-@admin_auth
+# @admin_auth
 def index():
     return render_template("admin/index.html")
 
