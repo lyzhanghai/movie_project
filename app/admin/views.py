@@ -63,10 +63,13 @@ def admin_auth(f):
             auth_list = Auth.query.all()
             urls = [v.url for v in auth_list for var in auths if var == v.id]
 
+            rule = str(request.url_rule)
+            if app.config['AUTH_SWITCH'] and rule not in urls:
+                abort(404)
             # 判断是否有权限访问
             # if app.config['AUTH_SWITCH'] and str(request.url_rule) is not urls:
-            if app.config['AUTH_SWITCH'] and str(request.url_rule) not in urls:
-                abort(404)
+            # # if app.config['AUTH_SWITCH'] and str(request.url_rule) not in urls:
+            #     abort(404)
         return f(*args, **kwargs)
 
     return decorated_function
