@@ -14,6 +14,7 @@ from app.models import Admin, Tag, Movie, Preview, User, Comment, Moviecol, Oplo
 from functools import wraps
 from werkzeug.utils import secure_filename
 import os, uuid, datetime
+from app.log import logger
 
 page_data = None  # 存储分页数据以便返回使用
 edit_role_name = None  # 存储编辑角色页的旧角色名称
@@ -64,6 +65,7 @@ def admin_auth(f):
             urls = [v.url for v in auth_list for var in auths if var == v.id]
 
             rule = str(request.url_rule)
+
             if app.config['AUTH_SWITCH'] and rule not in urls:
                 abort(404)
             # 判断是否有权限访问
@@ -262,6 +264,8 @@ def movie_add():
         logo = change_filename(file_logo)
         form.url.data.save(app.config['UP_DIR'] + url)  # 保存上传的数据
         form.logo.data.save(app.config['UP_DIR'] + logo)
+        admin_id = session["admin_id"]
+        logger.info("操作人id:{0}".format(admin_id))
         movie = Movie(
             title=data["title"],
             url=url,
@@ -273,7 +277,8 @@ def movie_add():
             tag_id=int(data["tag_id"]),
             area=data["area"],
             release_time=data["release_time"],
-            length=data["length"]
+            length=data["length"],
+            creater_id=admin_id
         )
         db.session.add(movie)
         db.session.commit()
@@ -357,11 +362,15 @@ def movie_edit(id=None):
 @admin_login_req
 @admin_auth
 def movie_list(page=None):
+    # 通过登录人过滤电影列表.
+    admin_id = session['admin_id']
     global page_data
     if page is None:
         page = 1
     page_data = Movie.query.join(Tag).filter(
         Movie.tag_id == Tag.id
+    ).filter(
+        Movie.creater_id == admin_id
     ).order_by(
         Movie.addtime.desc()
     ).paginate(page=page, per_page=app.config['PAGE_SET'])
@@ -889,7 +898,7 @@ def role_del(id=None):
 @admin_auth
 def admin_add():
     form = AdminForm()
-    #需要实时查询角色信息.zhanghai.
+    # 需要实时查询角色信息.zhanghai.
     form.role_id.choices = [(0, "未选择")] + [(v.id, v.name) for v in Role.query.all()]
 
     if form.validate_on_submit():

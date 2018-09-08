@@ -6,15 +6,19 @@
 # @datetime: 9/26 026 下午 07:34
 
 
+import datetime
+import os
+import uuid
+from functools import wraps
+
+from flask import render_template, redirect, url_for, flash, session, request, abort
+from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
+
 from app import db, app
 from app.home import home
 from app.home.forms import RegistForm, LoginForm, UserdetailForm, PwdForm, CommentForm
 from app.models import User, Userlog, Preview, Tag, Movie, Comment, Moviecol
-from flask import render_template, redirect, url_for, flash, session, request, abort
-from werkzeug.security import generate_password_hash
-from werkzeug.utils import secure_filename
-from functools import wraps
-import uuid, os, datetime
 
 
 # 定义登录判断装饰器

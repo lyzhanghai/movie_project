@@ -76,6 +76,7 @@ class Movie(db.Model):
     addtime = db.Column(db.DateTime, index=True, default=datetime.now)  # 添加时间
     comments = db.relationship('Comment', backref='movie')  # 评论外键关系关联
     moviecols = db.relationship('Moviecol', backref='movie')  # 电影收藏外键关系关联
+    creater_id = db.Column(db.Integer)
 
     def __repr__(self):
         return "<Movie %r>" % self.title
@@ -159,7 +160,7 @@ class Admin(db.Model):
         return "<Admin %r>" % self.name
 
     def check_pwd(self, pwd):
-        from werkzeug.security import check_password_hash,generate_password_hash
+        from werkzeug.security import check_password_hash, generate_password_hash
 
         print(self.pwd)
         g_password_hash = generate_password_hash("123456")
