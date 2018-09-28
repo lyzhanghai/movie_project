@@ -13,6 +13,7 @@
 
 
 -- 导出 movie 的数据库结构
+DROP DATABASE IF EXISTS `movie`;
 CREATE DATABASE IF NOT EXISTS `movie` /*!40100 DEFAULT CHARACTER SET utf8 */;
 USE `movie`;
 
@@ -39,7 +40,7 @@ INSERT INTO `admin` (`id`, `name`, `pwd`, `is_super`, `role_id`, `addtime`) VALU
 	(1, 'python', 'pbkdf2:sha256:50000$aeSB9WAY$1c23b755d24950d1a3854aae4d38d201e29bede241ae842802b07194daf35a1c', 0, 5, '2017-09-24 11:44:23'),
 	(3, 'adc', 'pbkdf2:sha256:50000$oladkO2L$732ef57283f2ee998d30eecc95cfb28c65a3843b18e7417860fa87575a3f959d', NULL, NULL, '2017-10-14 11:32:18'),
 	(4, 'test', 'pbkdf2:sha256:50000$azQqSj1Y$725ca817e2cb485a11ae4eefb871f25c2c38800f0e95b45fb67a22d4d2acdefe', 1, 10, '2018-09-06 11:09:24'),
-	(5, 'zhanghai', 'pbkdf2:sha256:50000$qWEtfZ3a$833b467d01329013ff8251ac711b2c2c428b8c27dcab90a0689748b1d11564f9', 1, 5, '2018-09-07 11:21:51');
+	(5, 'zhanghai', 'pbkdf2:sha256:50000$25v4XW9p$b09be60cde4fb2ff4de36b41d792221624785eb4377a3cf07dfbf04ea024126b', 1, 5, '2018-09-07 11:21:51');
 /*!40000 ALTER TABLE `admin` ENABLE KEYS */;
 
 -- 导出  表 movie.adminlog 结构
@@ -53,9 +54,9 @@ CREATE TABLE IF NOT EXISTS `adminlog` (
   KEY `admin_id` (`admin_id`),
   KEY `ix_adminlog_addtime` (`addtime`),
   CONSTRAINT `adminlog_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `admin` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8;
 
--- 正在导出表  movie.adminlog 的数据：~17 rows (大约)
+-- 正在导出表  movie.adminlog 的数据：~22 rows (大约)
 DELETE FROM `adminlog`;
 /*!40000 ALTER TABLE `adminlog` DISABLE KEYS */;
 INSERT INTO `adminlog` (`id`, `admin_id`, `ip`, `addtime`) VALUES
@@ -77,7 +78,19 @@ INSERT INTO `adminlog` (`id`, `admin_id`, `ip`, `addtime`) VALUES
 	(16, 1, '127.0.0.1', '2018-09-07 11:13:28'),
 	(17, 5, '127.0.0.1', '2018-09-07 11:22:55'),
 	(18, 1, '127.0.0.1', '2018-09-08 13:55:15'),
-	(19, 1, '127.0.0.1', '2018-09-08 16:08:47');
+	(19, 1, '127.0.0.1', '2018-09-08 16:08:47'),
+	(20, 1, '127.0.0.1', '2018-09-28 09:38:08'),
+	(21, 1, '127.0.0.1', '2018-09-28 09:38:47'),
+	(22, 5, '127.0.0.1', '2018-09-28 09:39:15'),
+	(23, 5, '127.0.0.1', '2018-09-28 09:45:02'),
+	(24, 1, '127.0.0.1', '2018-09-28 09:49:01'),
+	(25, 5, '127.0.0.1', '2018-09-28 16:15:28'),
+	(26, 5, '127.0.0.1', '2018-09-28 16:17:26'),
+	(27, 5, '127.0.0.1', '2018-09-28 16:18:40'),
+	(28, 5, '127.0.0.1', '2018-09-28 16:19:07'),
+	(29, 5, '127.0.0.1', '2018-09-28 16:20:23'),
+	(30, 5, '127.0.0.1', '2018-09-28 16:28:31'),
+	(31, 5, '127.0.0.1', '2018-09-28 16:29:05');
 /*!40000 ALTER TABLE `adminlog` ENABLE KEYS */;
 
 -- 导出  表 movie.auth 结构
