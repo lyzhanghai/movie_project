@@ -262,6 +262,7 @@ def movie_add():
             os.chmod(app.config['UP_DIR'], "rw")
         url = change_filename(file_url)  # 调用函数生成新的文件名
         logo = change_filename(file_logo)
+
         form.url.data.save(app.config['UP_DIR'] + url)  # 保存上传的数据
         form.logo.data.save(app.config['UP_DIR'] + logo)
         admin_id = session["admin_id"]
